@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELIOS — FSOC Coarse Tracking System</title>
+
+<style>
+:root{
+  --bg:#07111f; --panel:#0d1b2e; --panel2:#10243d; --text:#eef6ff;
+  --muted:#8aa3bd; --accent:#ffd166; --good:#44d17a; --warn:#ffb020; --bad:#ff5d73;
+  --line:#24415f;
+}
+
+*{box-sizing:border-box}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial,sans-serif;
+  background:linear-gradient(135deg,#06101d,#0b1e34);
+  color:var(--text);
+  min-height:100vh;
+}
+
+/* =========================================================
+   LANDING PAGE
+   ========================================================= */
+
+.landing{
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(255,209,102,.10), transparent 24%),
+    radial-gradient(circle at 15% 75%, rgba(48,110,180,.12), transparent 30%),
+    linear-gradient(135deg,#050d18,#091a2d 55%,#07111f);
+}
+
+/* subtle stars */
+
+.landing::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(circle,rgba(255,255,255,.55) 1px,transparent 1px),
+    radial-gradient(circle,rgba(255,255,255,.25) 1px,transparent 1px);
+  background-size:110px 110px,170px 170px;
+  background-position:20px 30px,80px 100px;
+  opacity:.18;
+  pointer-events:none;
+}
+
+/* Navigation */
+
+.landing-nav{
+  position:relative;
+  z-index:2;
+  max-width:1400px;
+  margin:auto;
+  padding:22px 30px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.landing-brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.brand-orb{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle,#fff8c9 0 15%,#ffd166 35%,#ff9f1c 68%,transparent 70%);
+  box-shadow:0 0 22px rgba(255,209,102,.45);
+}
+
+.landing-brand strong{
+  font-size:19px;
+  letter-spacing:2px;
+}
+
+.landing-brand span{
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:1.4px;
+  margin-top:2px;
+}
+
+.nav-links{
+  display:flex;
+  gap:28px;
+  align-items:center;
+}
+
+.nav-links a{
+  color:#b9cde0;
+  text-decoration:none;
+  font-size:13px;
+  transition:.2s;
+}
+
+.nav-links a:hover{
+  color:var(--accent);
+}
+
+/* Hero */
+
+.hero{
+  position:relative;
+  z-index:1;
+  max-width:1400px;
+  min-height:calc(100vh - 80px);
+  margin:auto;
+  padding:70px 30px 90px;
+  display:grid;
+  grid-template-columns:1.05fr .95fr;
+  align-items:center;
+  gap:50px;
+}
+
+.hero-content{
+  max-width:700px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 12px;
+  border:1px solid #294764;
+  background:rgba(16,36,61,.65);
+  border-radius:30px;
+  color:#b7cce0;
+  font-size:11px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  margin-bottom:22px;
+}
+
+.eyebrow-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--good);
+  box-shadow:0 0 10px rgba(68,209,122,.7);
+}
+
+.hero h2{
+  margin:0;
+  font-size:clamp(48px,7vw,88px);
+  line-height:.95;
+  letter-spacing:-3px;
+}
+
+.hero h2 span{
+  color:var(--accent);
+}
+
+.hero-subtitle{
+  margin:25px 0 0;
+  max-width:620px;
+  font-size:19px;
+  line-height:1.65;
+  color:#a9bfd4;
+}
+
+.hero-description{
+  margin:15px 0 0;
+  max-width:600px;
+  font-size:14px;
+  line-height:1.7;
+  color:#7893ad;
+}
+
+.hero-buttons{
+  display:flex;
+  gap:12px;
+  margin-top:30px;
+  flex-wrap:wrap;
+}
+
+.launch-btn{
+  border:none;
+  padding:13px 20px;
+  border-radius:11px;
+  background:var(--accent);
+  color:#132033;
+  font-weight:800;
+  cursor:pointer;
+  font-size:14px;
+  box-shadow:0 8px 25px rgba(255,209,102,.15);
+  transition:.2s;
+}
+
+.launch-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(255,209,102,.25);
+}
+
+.learn-btn{
+  border:1px solid #2b4f73;
+  padding:12px 19px;
+  border-radius:11px;
+  background:rgba(16,36,61,.7);
+  color:var(--text);
+  font-weight:700;
+  cursor:pointer;
+  font-size:14px;
+}
+
+/* Hero visual */
+
+.hero-visual{
+  position:relative;
+  height:480px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.orbit{
+  position:absolute;
+  width:380px;
+  height:380px;
+  border:1px solid rgba(100,145,185,.25);
+  border-radius:50%;
+  transform:rotate(-20deg) scaleY(.55);
+}
+
+.orbit.two{
+  width:300px;
+  height:300px;
+  transform:rotate(35deg) scaleY(.55);
+  border-color:rgba(255,209,102,.16);
+}
+
+.hero-sun{
+  width:105px;
+  height:105px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle,#fff9cf 0 13%,#ffe07a 30%,#ffd166 50%,#ff9f1c 72%,#d66a0c 100%);
+  box-shadow:
+    0 0 35px rgba(255,209,102,.4),
+    0 0 80px rgba(255,159,28,.14);
+  position:relative;
+  z-index:2;
+}
+
+.beacon-line{
+  position:absolute;
+  width:280px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#ffd166,transparent);
+  transform:rotate(-25deg);
+  opacity:.55;
+}
+
+.target{
+  position:absolute;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#fff4a9;
+  box-shadow:0 0 18px #ffd166;
+  top:65px;
+  right:80px;
+}
+
+.target::after{
+  content:"";
+  position:absolute;
+  width:34px;
+  height:34px;
+  border:1px solid rgba(255,209,102,.45);
+  border-radius:50%;
+  left:-11px;
+  top:-11px;
+  animation:pulse 2s infinite;
+}
+
+.crosshair{
+  position:absolute;
+  bottom:85px;
+  left:90px;
+  width:35px;
+  height:35px;
+  border:1px solid rgba(220,236,255,.8);
+}
+
+.crosshair::before,
+.crosshair::after{
+  content:"";
+  position:absolute;
+  background:#dcecff;
+}
+
+.crosshair::before{
+  width:55px;
+  height:1px;
+  top:16px;
+  left:-11px;
+}
+
+.crosshair::after{
+  height:55px;
+  width:1px;
+  left:16px;
+  top:-11px;
+}
+
+.visual-label{
+  position:absolute;
+  right:15px;
+  bottom:65px;
+  padding:10px 13px;
+  background:rgba(10,23,40,.85);
+  border:1px solid #28445f;
+  border-radius:10px;
+  font-size:11px;
+  color:#a9bfd4;
+}
+
+.visual-label b{
+  color:var(--good);
+}
+
+/* Landing sections */
+
+.landing-section{
+  position:relative;
+  z-index:1;
+  max-width:1200px;
+  margin:auto;
+  padding:85px 30px;
+}
+
+.section-heading{
+  text-align:center;
+  margin-bottom:45px;
+}
+
+.section-heading .mini{
+  color:var(--accent);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+}
+
+.section-heading h3{
+  font-size:34px;
+  margin:10px 0;
+}
+
+.section-heading p{
+  color:var(--muted);
+  max-width:650px;
+  margin:auto;
+  line-height:1.7;
+}
+
+/* Problem cards */
+
+.info-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+
+.info-card{
+  background:rgba(13,27,46,.72);
+  border:1px solid #1d3a58;
+  border-radius:17px;
+  padding:25px;
+  transition:.25s;
+}
+
+.info-card:hover{
+  transform:translateY(-4px);
+  border-color:#31577b;
+}
+
+.info-icon{
+  font-size:24px;
+  margin-bottom:15px;
+}
+
+.info-card h4{
+  margin:0 0 9px;
+  font-size:17px;
+}
+
+.info-card p{
+  color:#829bb3;
+  font-size:13px;
+  line-height:1.65;
+  margin:0;
+}
+
+/* Working flow */
+
+.system-flow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.flow-item{
+  padding:13px 16px;
+  border-radius:12px;
+  background:#10243d;
+  border:1px solid #24415f;
+  font-size:12px;
+  color:#c5d7e8;
+}
+
+.flow-arrow{
+  color:var(--accent);
+  font-size:18px;
+}
+
+/* Features */
+
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.feature{
+  padding:20px;
+  background:rgba(10,23,40,.75);
+  border:1px solid #1d3955;
+  border-radius:15px;
+}
+
+.feature strong{
+  display:block;
+  margin-bottom:6px;
+}
+
+.feature span{
+  color:#8099b1;
+  font-size:13px;
+  line-height:1.6;
+}
+
+/* CTA */
+
+.cta{
+  max-width:1200px;
+  margin:30px auto 90px;
+  padding:55px 35px;
+  text-align:center;
+  border-radius:22px;
+  border:1px solid #28445f;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(255,209,102,.08),transparent 50%),
+    rgba(13,27,46,.8);
+}
+
+.cta h3{
+  font-size:32px;
+  margin:0 0 12px;
+}
+
+.cta p{
+  color:var(--muted);
+  margin:0 auto 25px;
+  max-width:600px;
+  line-height:1.6;
+}
+
+.landing-footer{
+  max-width:1200px;
+  margin:auto;
+  padding:25px 30px 35px;
+  border-top:1px solid #18324e;
+  display:flex;
+  justify-content:space-between;
+  color:#637f9a;
+  font-size:11px;
+}
+
+/* landing mobile */
+
+@media(max-width:900px){
+  .nav-links{
+    display:none;
+  }
+
+  .hero{
+    grid-template-columns:1fr;
+    text-align:center;
+    padding-top:50px;
+  }
+
+  .hero-content{
+    margin:auto;
+  }
+
+  .hero-buttons{
+    justify-content:center;
+  }
+
+  .hero-visual{
+    height:350px;
+  }
+
+  .orbit{
+    width:300px;
+    height:300px;
+  }
+
+  .info-grid{
+    grid-template-columns:1fr;
+  }
+
+  .feature-grid{
+    grid-template-columns:1fr;
+  }
+
+  .landing-footer{
+    flex-direction:column;
+    gap:8px;
+    text-align:center;
+  }
+}
+
+
+/* =========================================================
+   EXISTING HELIOS SIMULATOR
+   ========================================================= */
+
+#simulation{
+  scroll-margin-top:80px;
+}
+
+header{
+  padding:20px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #18324e;
+  position:sticky;
+  top:0;
+  background:rgba(7,17,31,.92);
+  backdrop-filter:blur(10px);
+  z-index:4;
+}
+
+.brand{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.sun{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:radial-gradient(circle,#fff6ba 0 18%,#ffd166 40%,#ff9f1c 70%);
+  box-shadow:0 0 24px #ffd16680;
+}
+
+h1{
+  font-size:20px;
+  margin:0;
+  letter-spacing:.8px;
+}
+
+.sub{
+  font-size:12px;
+  color:var(--muted);
+}
+
+main{
+  padding:20px;
+  display:grid;
+  grid-template-columns:1.55fr .85fr;
+  gap:18px;
+  max-width:1400px;
+  margin:auto;
+}
+
+.card{
+  background:rgba(13,27,46,.92);
+  border:1px solid #1d3a58;
+  border-radius:18px;
+  box-shadow:0 12px 30px #0005;
+}
+
+.viewer{
+  padding:14px;
+}
+
+canvas{
+  width:100%;
+  aspect-ratio:16/10;
+  background:#030914;
+  border-radius:14px;
+  border:1px solid #28445f;
+  display:block;
+}
+
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:12px;
+}
+
+button,select,input{
+  border:1px solid #2b4f73;
+  background:#10243d;
+  color:var(--text);
+  border-radius:10px;
+  padding:10px 12px
+}
+
+button{
+  cursor:pointer;
+  font-weight:700
+}
+
+button.primary{
+  background:#f2b94b;
+  color:#132033;
+  border:none
+}
+
+button.danger{
+  background:#3a1a24;
+  border-color:#6f2a3a
+}
+
+.metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:14px
+}
+
+.metric{
+  background:#0a1728;
+  border:1px solid #1d3955;
+  border-radius:14px;
+  padding:13px
+}
+
+.metric .k{
+  color:var(--muted);
+  font-size:12px
+}
+
+.metric .v{
+  font-size:23px;
+  font-weight:800;
+  margin-top:5px
+}
+
+.status{
+  grid-column:1/-1;
+  padding:16px;
+  border-radius:14px;
+  background:#0a1728;
+  border:1px solid #1d3955;
+  display:flex;
+  align-items:center;
+  justify-content:space-between
+}
+
+.dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:8px
+}
+
+.panel{
+  padding:16px;
+  margin-top:18px
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+  margin:12px 0
+}
+
+.row input[type=range]{
+  width:220px;
+  padding:0
+}
+
+.small{
+  font-size:12px;
+  color:var(--muted)
+}
+
+.flow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px
+}
+
+.flow span{
+  padding:8px 10px;
+  border-radius:10px;
+  background:#10243d;
+  border:1px solid #24415f;
+  font-size:12px
+}
+
+footer{
+  max-width:1400px;
+  margin:0 auto 24px;
+  padding:0 20px;
+  color:#6f8aa5;
+  font-size:12px
+}
+
+@media(max-width:900px){
+  main{
+    grid-template-columns:1fr
+  }
+
+  .row input[type=range]{
+    width:150px
+  }
+}
+
+
+/* =========================================================
+   FOURIER OPTICAL ANALYSIS
+   ========================================================= */
+.fourier-section{
+  max-width:1400px;
+  margin:0 auto 28px;
+  padding:0 20px;
+}
+.fourier-grid{
+  display:grid;
+  grid-template-columns:.95fr 1.35fr;
+  gap:18px;
+  margin-top:14px;
+}
+.detector-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:12px;
+}
+.detector-box{
+  background:#0a1728;
+  border:1px solid #1d3955;
+  border-radius:12px;
+  padding:10px;
+}
+.detector-box label{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.detector-box input{
+  width:100%;
+}
+.optical-inputs{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-top:12px;
+}
+.fourier-canvases canvas{
+  width:100%;
+  height:250px;
+  aspect-ratio:auto;
+  background:#030914;
+  border:1px solid #28445f;
+  border-radius:12px;
+}
+.fourier-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:12px;
+}
+.fourier-legend{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:11px;
+  margin-top:8px;
+}
+.legend-line{
+  display:inline-block;
+  width:18px;
+  height:2px;
+  margin-right:6px;
+  vertical-align:middle;
+}
+.legend-source{background:#ffd166}
+.legend-wave{background:#72e4ff}
+.legend-fft{background:#b59cff}
+.physics-note{
+  margin-top:12px;
+  color:#7893ad;
+  font-size:11px;
+  line-height:1.6;
+}
+@media(max-width:900px){
+  .fourier-grid{grid-template-columns:1fr}
+  .detector-grid{grid-template-columns:repeat(2,1fr)}
+  .fourier-metrics{grid-template-columns:1fr}
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     LANDING PAGE
+     ========================================================= -->
+
+<section class="landing" id="home">
+
+  <nav class="landing-nav">
+
+    <div class="landing-brand">
+      <div class="brand-orb"></div>
+      <div>
+        <strong>HELIOS</strong>
+        <span>FSOC ACQUISITION & TRACKING</span>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#problem">Challenge</a>
+      <a href="#working">How It Works</a>
+      <a href="#features">Features</a>
+      <a href="#simulation">Simulation</a>
+    </div>
+
+  </nav>
+
+
+  <!-- HERO -->
+
+  <div class="hero">
+
+    <div class="hero-content">
+
+      <div class="eyebrow">
+        <span class="eyebrow-dot"></span>
+        SIH Prototype • Intelligent Optical Tracking
+      </div>
+
+      <h2>
+        Precise alignment.<br>
+        <span>Faster acquisition.</span>
+      </h2>
+
+      <p class="hero-subtitle">
+        HELIOS is an intelligent coarse tracking system designed
+        to acquire and maintain alignment between Free-Space
+        Optical Communication terminals.
+      </p>
+
+      <p class="hero-description">
+        Simulate beacon detection, pointing error, target motion,
+        disturbances and closed-loop pan/tilt correction through
+        an interactive browser-based control system.
+      </p>
+
+      <div class="hero-buttons">
+
+        <button class="launch-btn"
+          onclick="document.getElementById('simulation').scrollIntoView({behavior:'smooth'})">
+          ▶ Launch Simulation
+        </button>
+
+        <button class="learn-btn"
+          onclick="document.getElementById('working').scrollIntoView({behavior:'smooth'})">
+          Explore System ↓
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- HERO VISUAL -->
+
+    <div class="hero-visual">
+
+      <div class="orbit"></div>
+      <div class="orbit two"></div>
+
+      <div class="beacon-line"></div>
+
+      <div class="hero-sun"></div>
+
+      <div class="target"></div>
+
+      <div class="crosshair"></div>
+
+      <div class="visual-label">
+        SYSTEM STATUS:
+        <b> READY</b>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PROBLEM -->
+
+  <section class="landing-section" id="problem">
+
+    <div class="section-heading">
+
+      <div class="mini">THE CHALLENGE</div>
+
+      <h3>Why Optical Alignment Matters</h3>
+
+      <p>
+        Free-Space Optical Communication relies on highly accurate
+        pointing between transmitter and receiver. Even small
+        pointing errors can reduce link quality or cause the
+        optical link to be lost.
+      </p>
+
+    </div>
+
+
+    <div class="info-grid">
+
+      <div class="info-card">
+        <div class="info-icon">🎯</div>
+        <h4>Initial Pointing Error</h4>
+        <p>
+          The transmitter and receiver may initially be misaligned,
+          making rapid target acquisition essential.
+        </p>
+      </div>
+
+      <div class="info-card">
+        <div class="info-icon">〰️</div>
+        <h4>Motion & Disturbances</h4>
+        <p>
+          Platform movement, vibration and target motion can
+          continuously change the pointing direction.
+        </p>
+      </div>
+
+      <div class="info-card">
+        <div class="info-icon">🔭</div>
+        <h4>Precise Tracking</h4>
+        <p>
+          The system must continuously estimate pointing error
+          and correct the optical axis toward the beacon.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- HOW IT WORKS -->
+
+  <section class="landing-section" id="working">
+
+    <div class="section-heading">
+
+      <div class="mini">SYSTEM WORKFLOW</div>
+
+      <h3>How HELIOS Works</h3>
+
+      <p>
+        HELIOS follows a closed-loop tracking approach in which
+        the beacon position is detected, the pointing error is
+        calculated and the pan/tilt system continuously corrects it.
+      </p>
+
+    </div>
+
+
+    <div class="system-flow">
+
+      <div class="flow-item">☀ Beacon</div>
+      <div class="flow-arrow">→</div>
+
+      <div class="flow-item">◉ Detection</div>
+      <div class="flow-arrow">→</div>
+
+      <div class="flow-item">Δ Error</div>
+      <div class="flow-arrow">→</div>
+
+      <div class="flow-item">Prediction</div>
+      <div class="flow-arrow">→</div>
+
+      <div class="flow-item">Controller</div>
+      <div class="flow-arrow">→</div>
+
+      <div class="flow-item">↕ Pan / Tilt</div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FEATURES -->
+
+  <section class="landing-section" id="features">
+
+    <div class="section-heading">
+
+      <div class="mini">PROTOTYPE CAPABILITIES</div>
+
+      <h3>Built for Real-Time Experimentation</h3>
+
+      <p>
+        The browser-based prototype allows different tracking
+        conditions to be tested without requiring physical
+        hardware during the initial development stage.
+      </p>
+
+    </div>
+
+
+    <div class="feature-grid">
+
+      <div class="feature">
+        <strong>🎯 Dynamic Target Tracking</strong>
+        <span>
+          Test circular, sinusoidal and random beacon trajectories
+          to evaluate tracking response.
+        </span>
+      </div>
+
+      <div class="feature">
+        <strong>⚡ Disturbance Simulation</strong>
+        <span>
+          Introduce artificial disturbances to observe how the
+          controller responds to sudden pointing errors.
+        </span>
+      </div>
+
+      <div class="feature">
+        <strong>📡 Beacon Loss Detection</strong>
+        <span>
+          Simulate beacon disappearance and observe the system
+          transition into a target-lost state.
+        </span>
+      </div>
+
+      <div class="feature">
+        <strong>🎛️ Controller Tuning</strong>
+        <span>
+          Adjust proportional gain, target speed, noise and lock
+          radius to study system behaviour.
+        </span>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CTA -->
+
+  <div class="cta">
+
+    <h3>Ready to test the tracking system?</h3>
+
+    <p>
+      Enter the HELIOS simulation and observe how the virtual
+      optical axis responds to target movement, noise and
+      disturbances in real time.
+    </p>
+
+    <button class="launch-btn"
+      onclick="document.getElementById('simulation').scrollIntoView({behavior:'smooth'})">
+      ▶ Launch HELIOS Simulation
+    </button>
+
+  </div>
+
+
+  <div class="landing-footer">
+    <span>HELIOS • Free-Space Optical Communication Tracking</span>
+    <span>SIH Internal Hackathon Prototype • V1</span>
+  </div>
+
+</section>
+
+
+<!-- =========================================================
+     EXISTING HELIOS SIMULATOR
+     ========================================================= -->
+
+<div id="simulation">
+
+<header>
+
+  <div class="brand">
+
+    <div class="sun"></div>
+
+    <div>
+      <h1>HELIOS</h1>
+      <div class="sub">
+        AI-Assisted FSOC Coarse Alignment — Working Web Prototype
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sub">
+    SIH Prototype • Closed-loop tracking simulation
+  </div>
+
+</header>
+
+
+<main>
+
+  <section>
+
+    <div class="card viewer">
+
+      <canvas id="cv" width="960" height="600"></canvas>
+
+      <div class="controls">
+
+        <button class="primary" id="startBtn">
+          ▶️ Start Tracking
+        </button>
+
+        <button id="disturbBtn">
+          ⚡ Add Disturbance
+        </button>
+
+        <button id="hideBtn">
+          👻 Hide Beacon
+        </button>
+
+        <button id="resetBtn">
+          ↺ Reset
+        </button>
+
+        <select id="pathSel">
+
+          <option value="circle">
+            Circular target
+          </option>
+
+          <option value="sine">
+            Sinusoidal target
+          </option>
+
+          <option value="random">
+            Random target
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <div class="card panel">
+
+      <b>Tracking pipeline</b>
+
+      <div class="flow">
+
+        <span>Beacon</span>
+        <span>→</span>
+        <span>Detection</span>
+        <span>→</span>
+        <span>Error</span>
+        <span>→</span>
+        <span>Prediction</span>
+        <span>→</span>
+        <span>P Controller</span>
+        <span>→</span>
+        <span>Pan / Tilt</span>
+
+      </div>
+
+      <div class="small" style="margin-top:10px">
+
+        The yellow point is the optical beacon.
+        The crosshair is the virtual camera optical axis.
+        The controller continuously moves the camera toward the beacon.
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <aside>
+
+    <div class="card metrics">
+
+      <div class="status">
+
+        <div>
+          <span class="dot" id="statusDot"></span>
+          <b id="statusText">IDLE</b>
+        </div>
+
+        <span class="small" id="lockText">
+          Target not acquired
+        </span>
+
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Tracking error</div>
+        <div class="v" id="err">0 px</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Angular error*</div>
+        <div class="v" id="ang">0.00°</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Pan</div>
+        <div class="v" id="pan">0.0°</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Tilt</div>
+        <div class="v" id="tilt">0.0°</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">FPS</div>
+        <div class="v" id="fps">60</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Lock retention</div>
+        <div class="v" id="lock">0%</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Acquisition time</div>
+        <div class="v" id="acq">—</div>
+      </div>
+
+
+      <div class="metric">
+        <div class="k">Processing latency</div>
+        <div class="v" id="lat">—</div>
+      </div>
+
+    </div>
+
+
+    <div class="card panel">
+
+      <b>Controller tuning</b>
+
+      <div class="row">
+
+        <label>
+          Gain Kp
+          <span class="small" id="kpVal"></span>
+        </label>
+
+        <input
+          id="kp"
+          type="range"
+          min="0.01"
+          max="0.20"
+          step="0.01"
+          value="0.08"
+        >
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Target speed
+          <span class="small" id="speedVal"></span>
+        </label>
+
+        <input
+          id="speed"
+          type="range"
+          min="0.3"
+          max="2.5"
+          step="0.1"
+          value="1.0"
+        >
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Noise
+          <span class="small" id="noiseVal"></span>
+        </label>
+
+        <input
+          id="noise"
+          type="range"
+          min="0"
+          max="20"
+          step="1"
+          value="2"
+        >
+
+      </div>
+
+
+      <div class="row">
+
+        <label>
+          Lock radius
+          <span class="small" id="lockVal"></span>
+        </label>
+
+        <input
+          id="lockRadius"
+          type="range"
+          min="8"
+          max="60"
+          step="2"
+          value="28"
+        >
+
+      </div>
+
+
+      <div class="small">
+
+        *Angular error uses an assumed horizontal camera FOV
+        of 60° for demonstration.
+
+      </div>
+
+    </div>
+
+  </aside>
+
+</main>
+
+
+
+<section class="fourier-section" id="fourier-analysis">
+  <div class="card panel">
+    <b>Fourier Optical Intensity Analysis</b>
+    <div class="small" style="margin-top:6px">
+      Six-detector source sampling → optical-field FFT → Fresnel propagation → received wavefront comparison.
+    </div>
+
+    <div class="fourier-grid">
+      <div>
+        <b style="font-size:13px">6-channel detector grid</b>
+        <div class="small" style="margin-top:5px">
+          Enter normalized detector readings from 0 to 1. These can later be replaced by live ADC values from six photodetectors.
+        </div>
+
+        <div class="detector-grid">
+          <div class="detector-box"><label>D1 intensity</label><input id="d1" type="number" min="0" max="1" step="0.01" value="0.18"></div>
+          <div class="detector-box"><label>D2 intensity</label><input id="d2" type="number" min="0" max="1" step="0.01" value="0.52"></div>
+          <div class="detector-box"><label>D3 intensity</label><input id="d3" type="number" min="0" max="1" step="0.01" value="0.94"></div>
+          <div class="detector-box"><label>D4 intensity</label><input id="d4" type="number" min="0" max="1" step="0.01" value="0.94"></div>
+          <div class="detector-box"><label>D5 intensity</label><input id="d5" type="number" min="0" max="1" step="0.01" value="0.52"></div>
+          <div class="detector-box"><label>D6 intensity</label><input id="d6" type="number" min="0" max="1" step="0.01" value="0.18"></div>
+        </div>
+
+        <div class="optical-inputs">
+          <div class="detector-box"><label>Wavelength λ (nm)</label><input id="lambdaNm" type="number" min="300" max="2000" step="1" value="850"></div>
+          <div class="detector-box"><label>Propagation distance z (m)</label><input id="propZ" type="number" min="0.1" max="10000" step="0.1" value="10"></div>
+          <div class="detector-box"><label>Detector pitch Δx (mm)</label><input id="pitchMm" type="number" min="0.01" max="100" step="0.01" value="1"></div>
+          <div class="detector-box"><label>Wavefront noise (%)</label><input id="waveNoise" type="number" min="0" max="50" step="1" value="0"></div>
+        </div>
+
+        <div class="controls" style="margin-top:12px">
+          <button class="primary" id="runFFT">Run Fourier Analysis</button>
+          <button id="idealMatch">Ideal Calibrated Lock</button>
+        </div>
+
+        <div class="fourier-metrics">
+          <div class="metric"><div class="k">Profile similarity</div><div class="v" id="profileSimilarity">—</div></div>
+          <div class="metric"><div class="k">RMSE</div><div class="v" id="profileRMSE">—</div></div>
+          <div class="metric"><div class="k">Peak spatial frequency</div><div class="v" id="peakFreq">—</div></div>
+        </div>
+
+        <div class="physics-note">
+          HELIOS converts measured intensity to optical field amplitude using E = √I, takes the spatial FFT, applies a Fresnel transfer function,
+          then inverse-transforms to estimate received intensity. The two normalized profiles should overlap strongly only for a calibrated/compensated link;
+          tracking error, disturbance and noise reduce their agreement.
+        </div>
+      </div>
+
+      <div class="fourier-canvases">
+        <b style="font-size:13px">Source vs received wavefront intensity</b>
+        <div class="fourier-legend">
+          <span><i class="legend-line legend-source"></i>Source intensity</span>
+          <span><i class="legend-line legend-wave"></i>Wavefront intensity</span>
+        </div>
+        <canvas id="intensityChart" width="760" height="250"></canvas>
+
+        <b style="font-size:13px;display:block;margin-top:16px">Spatial Fourier spectrum</b>
+        <div class="fourier-legend"><span><i class="legend-line legend-fft"></i>|FFT(E)|</span></div>
+        <canvas id="fftChart" width="760" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<footer>
+
+  HELIOS V1 • Browser-based proof of concept for FSOC acquisition
+  and coarse tracking. Use this to demonstrate the control logic
+  before connecting real Arduino pan/tilt hardware.
+
+</footer>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   EXISTING SIMULATION JAVASCRIPT
+   ========================================================= */
+
+const canvas=document.getElementById('cv'),
+ctx=canvas.getContext('2d');
+
+const W=canvas.width,
+H=canvas.height;
+
+let running=false,
+hidden=false,
+t=0,
+last=performance.now();
+
+let target={
+  x:W*0.76,
+  y:H*0.38
+};
+
+let cam={
+  x:W/2,
+  y:H/2
+};
+
+let pan=0,
+tilt=0,
+frames=0,
+lockedFrames=0,
+acquiredAt=null,
+startAt=null,
+disturbance=0;
+
+let randTarget={
+  x:W*.7,
+  y:H*.3
+};
+
+let nextRand=0;
+
+
+const el=id=>document.getElementById(id);
+
+const kp=el('kp'),
+speed=el('speed'),
+noise=el('noise'),
+lockRadius=el('lockRadius');
+
+
+function updateLabels(){
+
+  el('kpVal').textContent=
+    Number(kp.value).toFixed(2);
+
+  el('speedVal').textContent=
+    Number(speed.value).toFixed(1)+'×';
+
+  el('noiseVal').textContent=
+    noise.value+' px';
+
+  el('lockVal').textContent=
+    lockRadius.value+' px';
+}
+
+
+[kp,speed,noise,lockRadius]
+  .forEach(x=>x.oninput=updateLabels);
+
+updateLabels();
+
+
+function reset(){
+
+  running=false;
+  hidden=false;
+  t=0;
+  frames=lockedFrames=0;
+  acquiredAt=null;
+  startAt=null;
+  disturbance=0;
+
+  cam={
+    x:W/2,
+    y:H/2
+  };
+
+  pan=tilt=0;
+
+  target={
+    x:W*.76,
+    y:H*.38
+  };
+
+  el('startBtn').textContent=
+    '▶️ Start Tracking';
+
+}
+
+
+function targetMotion(dt){
+
+  t += dt*Number(speed.value);
+
+  const mode=
+    el('pathSel').value;
+
+
+  if(mode==='circle'){
+
+    target.x=
+      W/2+
+      250*Math.cos(t*.75);
+
+    target.y=
+      H/2+
+      160*Math.sin(t*.95);
+
+  }
+
+
+  else if(mode==='sine'){
+
+    target.x=
+      80+
+      (W-160)*
+      ((Math.sin(t*.45)+1)/2);
+
+    target.y=
+      H/2+
+      150*Math.sin(t*1.35);
+
+  }
+
+
+  else{
+
+    if(t>nextRand){
+
+      randTarget={
+        x:100+Math.random()*(W-200),
+        y:90+Math.random()*(H-180)
+      };
+
+      nextRand=t+1.4;
+
+    }
+
+    target.x +=
+      (randTarget.x-target.x)*
+      Math.min(1,dt*1.5);
+
+    target.y +=
+      (randTarget.y-target.y)*
+      Math.min(1,dt*1.5);
+
+  }
+
+}
+
+
+function drawGrid(){
+
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle='#030914';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle='#102038';
+  ctx.lineWidth=1;
+
+
+  for(let x=0;x<W;x+=60){
+
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,H);
+    ctx.stroke();
+
+  }
+
+
+  for(let y=0;y<H;y+=60){
+
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(W,y);
+    ctx.stroke();
+
+  }
+
+}
+
+
+function drawCross(x,y){
+
+  ctx.strokeStyle='#dcecff';
+  ctx.lineWidth=2;
+
+  ctx.beginPath();
+
+  ctx.moveTo(x-18,y);
+  ctx.lineTo(x+18,y);
+
+  ctx.moveTo(x,y-18);
+  ctx.lineTo(x,y+18);
+
+  ctx.stroke();
+
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y,
+    Number(lockRadius.value),
+    0,
+    Math.PI*2
+  );
+
+  ctx.strokeStyle='#294c70';
+
+  ctx.stroke();
+
+}
+
+
+function loop(now){
+
+  const dt=
+    Math.min(
+      (now-last)/1000,
+      .04
+    );
+
+  last=now;
+
+
+  if(running)
+    targetMotion(dt);
+
+
+  drawGrid();
+
+
+  let mx=target.x,
+      my=target.y;
+
+  const n=Number(noise.value);
+
+  mx +=
+    (Math.random()-.5)*n*2;
+
+  my +=
+    (Math.random()-.5)*n*2;
+
+
+  if(disturbance>0){
+
+    mx +=
+      Math.sin(t*25)*disturbance;
+
+    my +=
+      Math.cos(t*31)*
+      disturbance*.7;
+
+    disturbance*=.985;
+
+  }
+
+
+  let err=0,
+      locked=false;
+
+
+  if(running && !hidden){
+
+    const ex=
+      mx-cam.x;
+
+    const ey=
+      my-cam.y;
+
+    err=
+      Math.hypot(ex,ey);
+
+    const gain=
+      Number(kp.value);
+
+
+    cam.x +=
+      ex*gain;
+
+    cam.y +=
+      ey*gain;
+
+
+    pan +=
+      ex/W*60*gain;
+
+    tilt -=
+      ey/H*38*gain;
+
+
+    locked=
+      err<
+      Number(lockRadius.value);
+
+
+    frames++;
+
+    if(locked)
+      lockedFrames++;
+
+
+    if(
+      locked &&
+      acquiredAt===null
+    ){
+
+      acquiredAt=
+        (performance.now()-startAt)/1000;
+
+    }
+
+  }
+
+
+  drawCross(
+    cam.x,
+    cam.y
+  );
+
+
+  if(!hidden){
+
+    ctx.shadowBlur=24;
+    ctx.shadowColor='#ffd166';
+    ctx.fillStyle='#ffd166';
+
+    ctx.beginPath();
+
+    ctx.arc(
+      mx,
+      my,
+      8,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+
+
+    ctx.strokeStyle='#fff3b0';
+
+    ctx.beginPath();
+
+    ctx.arc(
+      mx,
+      my,
+      15,
+      0,
+      Math.PI*2
+    );
+
+    ctx.stroke();
+
+  }
+
+
+  ctx.fillStyle='#8aa3bd';
+  ctx.font='18px system-ui';
+
+  ctx.fillText(
+    'Virtual Camera FOV',
+    22,
+    32
+  );
+
+
+  ctx.fillText(
+    'Optical axis',
+    cam.x+25,
+    cam.y-12
+  );
+
+
+  const ang=
+    err/W*60;
+
+
+  el('err').textContent=
+    err.toFixed(0)+' px';
+
+  el('ang').textContent=
+    ang.toFixed(2)+'°';
+
+  el('pan').textContent=
+    pan.toFixed(1)+'°';
+
+  el('tilt').textContent=
+    tilt.toFixed(1)+'°';
+
+  el('fps').textContent=
+    (1/Math.max(dt,.001))
+      .toFixed(0);
+
+  el('lock').textContent=
+    (
+      frames?
+      100*lockedFrames/frames:
+      0
+    ).toFixed(1)+'%';
+
+  el('acq').textContent=
+    acquiredAt===null?
+    '—':
+    acquiredAt.toFixed(2)+' s';
+
+  el('lat').textContent=
+    (
+      1.5+
+      Math.random()*3
+    ).toFixed(1)+' ms';
+
+
+  let status='IDLE',
+      color='#8aa3bd',
+      msg='Target not acquired';
+
+
+  if(running){
+
+    if(hidden){
+
+      status='TARGET LOST';
+      color='#ff5d73';
+      msg=
+        'Beacon hidden — reacquisition required';
+
+    }
+
+    else if(locked){
+
+      status='LOCKED';
+      color='#44d17a';
+      msg=
+        'Coarse alignment achieved';
+
+    }
+
+    else{
+
+      status='TRACKING';
+      color='#ffb020';
+      msg=
+        'Controller reducing pointing error';
+
+    }
+
+  }
+
+
+  el('statusText').textContent=
+    status;
+
+  el('statusDot').style.background=
+    color;
+
+  el('lockText').textContent=
+    msg;
+
+
+  requestAnimationFrame(loop);
+
+}
+
+
+el('startBtn').onclick=()=>{
+
+  running=!running;
+
+  if(
+    running &&
+    startAt===null
+  )
+    startAt=performance.now();
+
+  el('startBtn').textContent=
+    running?
+    '⏸ Pause Tracking':
+    '▶️ Start Tracking';
+
+};
+
+
+el('disturbBtn').onclick=()=>{
+  disturbance=45;
+};
+
+
+el('hideBtn').onclick=()=>{
+
+  hidden=!hidden;
+
+  el('hideBtn').textContent=
+    hidden?
+    '👁 Show Beacon':
+    '👻 Hide Beacon';
+
+};
+
+
+el('resetBtn').onclick=reset;
+
+
+reset();
+
+requestAnimationFrame(loop);
+
+
+/* =========================================================
+   FOURIER OPTICAL ANALYSIS
+   ========================================================= */
+const NFFT = 128;
+let forceIdealProfile = false;
+
+function clamp01(v){
+  return Math.max(0,Math.min(1,Number(v)||0));
+}
+
+function detectorReadings(){
+  return [1,2,3,4,5,6].map(i=>clamp01(el('d'+i).value));
+}
+
+function normalizeArray(a){
+  const m=Math.max(...a.map(v=>Math.abs(v)),1e-12);
+  return a.map(v=>v/m);
+}
+
+function fftComplex(re,im,inverse=false){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){
+    let bit=n>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){
+      [re[i],re[j]]=[re[j],re[i]];
+      [im[i],im[j]]=[im[j],im[i]];
+    }
+  }
+
+  for(let len=2;len<=n;len<<=1){
+    const ang=(inverse?2:-2)*Math.PI/len;
+    const wLenR=Math.cos(ang), wLenI=Math.sin(ang);
+    for(let i=0;i<n;i+=len){
+      let wr=1,wi=0;
+      for(let j=0;j<len/2;j++){
+        const ur=re[i+j], ui=im[i+j];
+        const vr=re[i+j+len/2]*wr-im[i+j+len/2]*wi;
+        const vi=re[i+j+len/2]*wi+im[i+j+len/2]*wr;
+        re[i+j]=ur+vr;
+        im[i+j]=ui+vi;
+        re[i+j+len/2]=ur-vr;
+        im[i+j+len/2]=ui-vi;
+        const nextWr=wr*wLenR-wi*wLenI;
+        wi=wr*wLenI+wi*wLenR;
+        wr=nextWr;
+      }
+    }
+  }
+
+  if(inverse){
+    for(let i=0;i<n;i++){
+      re[i]/=n;
+      im[i]/=n;
+    }
+  }
+}
+
+function buildSourceField(intensities){
+  const re=new Array(NFFT).fill(0);
+  const im=new Array(NFFT).fill(0);
+  const start=Math.floor(NFFT/2)-3;
+  intensities.forEach((I,k)=>{
+    re[start+k]=Math.sqrt(Math.max(I,0));
+  });
+  return {re,im,start};
+}
+
+function fresnelPropagate(intensities){
+  const lambda=(Number(el('lambdaNm').value)||850)*1e-9;
+  const z=Math.max(0.001,Number(el('propZ').value)||10);
+  const dx=Math.max(1e-8,(Number(el('pitchMm').value)||1)*1e-3);
+
+  const field=buildSourceField(intensities);
+  const re=field.re.slice();
+  const im=field.im.slice();
+  fftComplex(re,im,false);
+
+  const spectrum=re.map((r,i)=>Math.hypot(r,im[i]));
+  const df=1/(NFFT*dx);
+
+  for(let k=0;k<NFFT;k++){
+    const kk=(k<=NFFT/2)?k:k-NFFT;
+    const fx=kk*df;
+    const phase=-Math.PI*lambda*z*fx*fx;
+    const hr=Math.cos(phase), hi=Math.sin(phase);
+    const rr=re[k]*hr-im[k]*hi;
+    const ii=re[k]*hi+im[k]*hr;
+    re[k]=rr;
+    im[k]=ii;
+  }
+
+  fftComplex(re,im,true);
+  const propagated=re.map((r,i)=>r*r+im[i]*im[i]);
+
+  let wave=[];
+  for(let k=0;k<6;k++) wave.push(propagated[field.start+k]);
+  wave=normalizeArray(wave);
+
+  const source=normalizeArray(intensities.slice());
+  if(forceIdealProfile){
+    wave=source.slice();
+  }else{
+    const noisePct=Math.max(0,Number(el('waveNoise').value)||0)/100;
+    const trackingPenalty=Math.min(0.35,Math.hypot(target.x-cam.x,target.y-cam.y)/W*0.35);
+    const disturbancePenalty=Math.min(0.25,disturbance/180);
+    wave=wave.map(v=>Math.max(0,
+      v*(1-trackingPenalty-disturbancePenalty)+(Math.random()-0.5)*2*noisePct
+    ));
+    wave=normalizeArray(wave);
+  }
+
+  return {
+    source,
+    wave,
+    spectrum:normalizeArray(spectrum.slice(0,NFFT/2)),
+    df
+  };
+}
+
+function cosineSimilarity(a,b){
+  let dot=0,aa=0,bb=0;
+  for(let i=0;i<a.length;i++){
+    dot+=a[i]*b[i];
+    aa+=a[i]*a[i];
+    bb+=b[i]*b[i];
+  }
+  return dot/(Math.sqrt(aa*bb)+1e-12);
+}
+
+function profileRmse(a,b){
+  return Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0)/a.length);
+}
+
+function drawOverlay(canvasEl,source,wave){
+  const g=canvasEl.getContext('2d');
+  const w=canvasEl.width,h=canvasEl.height;
+  const L=48,R=18,T=18,B=36,pw=w-L-R,ph=h-T-B;
+  g.clearRect(0,0,w,h);
+  g.fillStyle='#030914';
+  g.fillRect(0,0,w,h);
+  g.strokeStyle='#17304b';
+  g.lineWidth=1;
+
+  for(let i=0;i<=4;i++){
+    const y=T+ph*i/4;
+    g.beginPath();g.moveTo(L,y);g.lineTo(w-R,y);g.stroke();
+  }
+
+  ['D1','D2','D3','D4','D5','D6'].forEach((lab,i)=>{
+    const x=L+pw*i/5;
+    g.beginPath();g.moveTo(x,T);g.lineTo(x,T+ph);g.stroke();
+    g.fillStyle='#8aa3bd';g.font='11px system-ui';g.fillText(lab,x-8,h-12);
+  });
+
+  [
+    {data:source,color:'#ffd166'},
+    {data:wave,color:'#72e4ff'}
+  ].forEach(series=>{
+    g.strokeStyle=series.color;
+    g.lineWidth=2.5;
+    g.beginPath();
+    series.data.forEach((v,i)=>{
+      const x=L+pw*i/5;
+      const y=T+ph*(1-v);
+      if(i===0)g.moveTo(x,y); else g.lineTo(x,y);
+    });
+    g.stroke();
+    series.data.forEach((v,i)=>{
+      const x=L+pw*i/5;
+      const y=T+ph*(1-v);
+      g.fillStyle=series.color;
+      g.beginPath();g.arc(x,y,3,0,Math.PI*2);g.fill();
+    });
+  });
+}
+
+function drawSpectrum(canvasEl,spectrum,df){
+  const g=canvasEl.getContext('2d');
+  const w=canvasEl.width,h=canvasEl.height;
+  const L=48,R=18,T=18,B=36,pw=w-L-R,ph=h-T-B;
+  g.clearRect(0,0,w,h);
+  g.fillStyle='#030914';g.fillRect(0,0,w,h);
+  g.strokeStyle='#17304b';g.lineWidth=1;
+
+  for(let i=0;i<=4;i++){
+    const y=T+ph*i/4;
+    g.beginPath();g.moveTo(L,y);g.lineTo(w-R,y);g.stroke();
+  }
+
+  g.strokeStyle='#b59cff';
+  g.lineWidth=2;
+  g.beginPath();
+  spectrum.forEach((v,i)=>{
+    const x=L+pw*i/(spectrum.length-1);
+    const y=T+ph*(1-v);
+    if(i===0)g.moveTo(x,y); else g.lineTo(x,y);
+  });
+  g.stroke();
+
+  g.fillStyle='#8aa3bd';
+  g.font='11px system-ui';
+  g.fillText('0',L-4,h-12);
+  g.fillText((df*(spectrum.length-1)).toExponential(1)+' m⁻¹',w-105,h-12);
+}
+
+function runFourierAnalysis(){
+  const r=fresnelPropagate(detectorReadings());
+  drawOverlay(el('intensityChart'),r.source,r.wave);
+  drawSpectrum(el('fftChart'),r.spectrum,r.df);
+
+  const sim=cosineSimilarity(r.source,r.wave);
+  const rmse=profileRmse(r.source,r.wave);
+  el('profileSimilarity').textContent=(sim*100).toFixed(1)+'%';
+  el('profileRMSE').textContent=rmse.toFixed(3);
+
+  let peak=1;
+  for(let i=2;i<r.spectrum.length;i++){
+    if(r.spectrum[i]>r.spectrum[peak]) peak=i;
+  }
+  el('peakFreq').textContent=(peak*r.df).toExponential(2)+' m⁻¹';
+}
+
+el('runFFT').onclick=()=>{
+  forceIdealProfile=false;
+  runFourierAnalysis();
+};
+
+el('idealMatch').onclick=()=>{
+  forceIdealProfile=true;
+  runFourierAnalysis();
+};
+
+['d1','d2','d3','d4','d5','d6','lambdaNm','propZ','pitchMm','waveNoise'].forEach(id=>{
+  el(id).addEventListener('input',()=>{
+    if(!forceIdealProfile) runFourierAnalysis();
+  });
+});
+
+runFourierAnalysis();
+
+</script>
+
+</body>
+</html>

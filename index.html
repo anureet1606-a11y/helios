@@ -604,7 +604,34 @@ main{
 
 .viewer{
   padding:14px;
+  position:relative;
 }
+
+#cameraFeed{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+
+.ai-strip{
+  margin-top:10px;
+  padding:9px 12px;
+  border:1px solid #24415f;
+  border-radius:10px;
+  background:#081424;
+  color:#8aa3bd;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.ai-strip b{color:#72e4ff}
+.ai-strip .ready{color:#44d17a}
+.ai-strip .error{color:#ff5d73}
 
 canvas{
   width:100%;
@@ -1151,7 +1178,13 @@ footer{
 
     <div class="card viewer">
 
+      <video id="cameraFeed" autoplay muted playsinline></video>
       <canvas id="cv" width="960" height="600"></canvas>
+
+      <div class="ai-strip">
+        <span><b>YOLOv8n</b> • on-device object detection</span>
+        <span id="yoloState">Camera off</span>
+      </div>
 
       <div class="controls">
 
@@ -1288,6 +1321,16 @@ footer{
       <div class="metric">
         <div class="k">Processing latency</div>
         <div class="v" id="lat">—</div>
+      </div>
+
+      <div class="metric">
+        <div class="k">Detected target</div>
+        <div class="v" id="targetClass">—</div>
+      </div>
+
+      <div class="metric">
+        <div class="k">YOLO confidence</div>
+        <div class="v" id="confidence">—</div>
       </div>
 
     </div>
@@ -1464,81 +1507,250 @@ footer{
 </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script>
 
 /* =========================================================
-   EXISTING SIMULATION JAVASCRIPT
+   LIVE CAMERA + YOLOV8 OBJECT TRACKING
    ========================================================= */
 
 const canvas=document.getElementById('cv'),
-ctx=canvas.getContext('2d');
+ctx=canvas.getContext('2d'),
+video= document.getElementById('cameraFeed');
 
 const W=canvas.width,
-H=canvas.height;
+H=canvas.height,
+MODEL_SIZE=640,
+MODEL_URL='https://hyuto.github.io/yolov8-tfjs/yolov8n_web_model/model.json';
+
+const COCO_LABELS=[
+  'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat','traffic light',
+  'fire hydrant','stop sign','parking meter','bench','bird','cat','dog','horse','sheep','cow',
+  'elephant','bear','zebra','giraffe','backpack','umbrella','handbag','tie','suitcase','frisbee',
+  'skis','snowboard','sports ball','kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket','bottle',
+  'wine glass','cup','fork','knife','spoon','bowl','banana','apple','sandwich','orange',
+  'broccoli','carrot','hot dog','pizza','donut','cake','chair','couch','potted plant','bed',
+  'dining table','toilet','tv','laptop','mouse','remote','keyboard','cell phone','microwave','oven',
+  'toaster','sink','refrigerator','book','clock','vase','scissors','teddy bear','hair drier','toothbrush'
+];
+
+const el=id=>document.getElementById(id);
+const kp=el('kp'), speed=el('speed'), noise=el('noise'), lockRadius=el('lockRadius');
 
 let running=false,
 hidden=false,
+cameraActive=false,
+cameraStream=null,
+yoloModel=null,
+yoloLoading=null,
+detecting=false,
+latestDetections=[],
+selectedDetection=null,
+lastDetectionAt=0,
+yoloLatency=0,
 t=0,
-last=performance.now();
-
-let target={
-  x:W*0.76,
-  y:H*0.38
-};
-
-let cam={
-  x:W/2,
-  y:H/2
-};
-
-let pan=0,
+last=performance.now(),
+target={x:W*.76,y:H*.38},
+cam={x:W/2,y:H/2},
+pan=0,
 tilt=0,
 frames=0,
 lockedFrames=0,
 acquiredAt=null,
 startAt=null,
-disturbance=0;
+disturbance=0,
+randTarget={x:W*.7,y:H*.3},
+nextRand=0;
 
-let randTarget={
-  x:W*.7,
-  y:H*.3
-};
-
-let nextRand=0;
-
-
-const el=id=>document.getElementById(id);
-
-const kp=el('kp'),
-speed=el('speed'),
-noise=el('noise'),
-lockRadius=el('lockRadius');
-
-
-function updateLabels(){
-
-  el('kpVal').textContent=
-    Number(kp.value).toFixed(2);
-
-  el('speedVal').textContent=
-    Number(speed.value).toFixed(1)+'×';
-
-  el('noiseVal').textContent=
-    noise.value+' px';
-
-  el('lockVal').textContent=
-    lockRadius.value+' px';
+function setYoloState(message,type=''){
+  const state=el('yoloState');
+  state.textContent=message;
+  state.className=type;
 }
 
+function updateLabels(){
+  el('kpVal').textContent=Number(kp.value).toFixed(2);
+  el('speedVal').textContent=Number(speed.value).toFixed(1)+'×';
+  el('noiseVal').textContent=noise.value+' px';
+  el('lockVal').textContent=lockRadius.value+' px';
+}
 
-[kp,speed,noise,lockRadius]
-  .forEach(x=>x.oninput=updateLabels);
-
+[kp,speed,noise,lockRadius].forEach(x=>x.oninput=updateLabels);
 updateLabels();
 
+async function loadYolo(){
+  if(yoloModel) return yoloModel;
+  if(yoloLoading) return yoloLoading;
+
+  yoloLoading=(async()=>{
+    if(typeof tf==='undefined') throw new Error('TensorFlow.js did not load');
+    setYoloState('Loading YOLO AI…');
+    await tf.ready();
+    try{
+      await tf.setBackend('webgl');
+    }catch(error){
+      console.warn('WebGL unavailable; using TensorFlow.js fallback.',error);
+    }
+
+    const model=await tf.loadGraphModel(MODEL_URL,{
+      onProgress:fraction=>setYoloState('Loading YOLO '+Math.round(fraction*100)+'%')
+    });
+
+    const dummy=tf.zeros([1,MODEL_SIZE,MODEL_SIZE,3]);
+    const warm=model.execute(dummy);
+    tf.dispose(Array.isArray(warm)?[dummy,...warm]:[dummy,warm]);
+    yoloModel=model;
+    setYoloState('YOLO ready','ready');
+    return model;
+  })().catch(error=>{
+    console.error(error);
+    yoloLoading=null;
+    setYoloState('YOLO load failed','error');
+    throw error;
+  });
+
+  return yoloLoading;
+}
+
+async function startCamera(){
+  if(cameraActive) return;
+
+  if(!navigator.mediaDevices?.getUserMedia){
+    throw new Error('Camera access is not supported in this browser');
+  }
+
+  setYoloState('Requesting camera…');
+  cameraStream=await navigator.mediaDevices.getUserMedia({
+    audio:false,
+    video:{
+      facingMode:{ideal:'environment'},
+      width:{ideal:1280},
+      height:{ideal:720}
+    }
+  });
+
+  video.srcObject=cameraStream;
+  await video.play();
+  cameraActive=true;
+  running=true;
+  startAt=startAt??performance.now();
+  el('startBtn').textContent='⏸ Pause Tracking';
+
+  loadYolo()
+    .then(()=>detectionLoop())
+    .catch(()=>{});
+}
+
+function stopCamera(){
+  cameraStream?.getTracks().forEach(track=>track.stop());
+  cameraStream=null;
+  video.srcObject=null;
+  cameraActive=false;
+  detecting=false;
+  latestDetections=[];
+  selectedDetection=null;
+}
+
+function chooseTarget(detections){
+  if(!detections.length) return null;
+  const priority=['cell phone','laptop','person'];
+  for(const label of priority){
+    const match=detections.filter(item=>item.label===label).sort((a,b)=>b.score-a.score)[0];
+    if(match) return match;
+  }
+  return [...detections].sort((a,b)=>b.score-a.score)[0];
+}
+
+async function runYoloFrame(){
+  if(!yoloModel || video.readyState<2) return;
+  const started=performance.now();
+
+  const input=tf.tidy(()=>
+    tf.browser.fromPixels(video)
+      .resizeBilinear([MODEL_SIZE,MODEL_SIZE])
+      .toFloat()
+      .div(255)
+      .expandDims(0)
+  );
+
+  let raw=null, output=null, transposed=null, boxes=null, scores=null, classes=null, nms=null;
+  let selectedBoxes=null, selectedScores=null, selectedClasses=null;
+
+  try{
+    raw=yoloModel.execute(input);
+    output=Array.isArray(raw)?raw.find(tensor=>tensor.shape?.length===3)||raw[0]:raw;
+    transposed=output.transpose([0,2,1]);
+
+    boxes=tf.tidy(()=>{
+      const width=transposed.slice([0,0,2],[-1,-1,1]);
+      const height=transposed.slice([0,0,3],[-1,-1,1]);
+      const x1=transposed.slice([0,0,0],[-1,-1,1]).sub(width.div(2));
+      const y1=transposed.slice([0,0,1],[-1,-1,1]).sub(height.div(2));
+      return tf.concat([y1,x1,y1.add(height),x1.add(width)],2).squeeze();
+    });
+
+    [scores,classes]=tf.tidy(()=>{
+      const classScores=transposed.slice([0,0,4],[-1,-1,COCO_LABELS.length]).squeeze(0);
+      return [classScores.max(1),classScores.argMax(1)];
+    });
+
+    nms=await tf.image.nonMaxSuppressionAsync(boxes,scores,15,.45,.28);
+    selectedBoxes=boxes.gather(nms);
+    selectedScores=scores.gather(nms);
+    selectedClasses=classes.gather(nms);
+
+    const [boxData,scoreData,classData]=await Promise.all([
+      selectedBoxes.data(), selectedScores.data(), selectedClasses.data()
+    ]);
+
+    const detections=[];
+    for(let i=0;i<scoreData.length;i++){
+      let [y1,x1,y2,x2]=boxData.slice(i*4,i*4+4);
+      x1=Math.max(0,Math.min(W,x1/MODEL_SIZE*W));
+      x2=Math.max(0,Math.min(W,x2/MODEL_SIZE*W));
+      y1=Math.max(0,Math.min(H,y1/MODEL_SIZE*H));
+      y2=Math.max(0,Math.min(H,y2/MODEL_SIZE*H));
+      detections.push({
+        x:x1, y:y1, width:x2-x1, height:y2-y1,
+        cx:(x1+x2)/2, cy:(y1+y2)/2,
+        score:scoreData[i], classId:classData[i],
+        label:COCO_LABELS[classData[i]]||'object'
+      });
+    }
+
+    latestDetections=detections;
+    selectedDetection=chooseTarget(detections);
+    lastDetectionAt=performance.now();
+    yoloLatency=performance.now()-started;
+    setYoloState('YOLO live','ready');
+  }finally{
+    const tensors=[input,transposed,boxes,scores,classes,nms,selectedBoxes,selectedScores,selectedClasses];
+    if(Array.isArray(raw)) tensors.push(...raw); else tensors.push(raw);
+    tf.dispose(tensors.filter(Boolean));
+  }
+}
+
+async function detectionLoop(){
+  if(detecting) return;
+  detecting=true;
+
+  while(cameraActive){
+    if(running && !hidden){
+      try{
+        await runYoloFrame();
+      }catch(error){
+        console.error(error);
+        setYoloState('Detection error','error');
+        await new Promise(resolve=>setTimeout(resolve,700));
+      }
+    }
+    await new Promise(resolve=>setTimeout(resolve,45));
+  }
+  detecting=false;
+}
 
 function reset(){
-
+  stopCamera();
   running=false;
   hidden=false;
   t=0;
@@ -1546,445 +1758,212 @@ function reset(){
   acquiredAt=null;
   startAt=null;
   disturbance=0;
-
-  cam={
-    x:W/2,
-    y:H/2
-  };
-
+  cam={x:W/2,y:H/2};
   pan=tilt=0;
-
-  target={
-    x:W*.76,
-    y:H*.38
-  };
-
-  el('startBtn').textContent=
-    '▶️ Start Tracking';
-
+  target={x:W*.76,y:H*.38};
+  el('startBtn').textContent='▶️ Start Tracking';
+  el('hideBtn').textContent='👻 Hide Beacon';
+  el('targetClass').textContent='—';
+  el('confidence').textContent='—';
+  setYoloState('Camera off');
 }
-
 
 function targetMotion(dt){
-
-  t += dt*Number(speed.value);
-
-  const mode=
-    el('pathSel').value;
-
-
+  t+=dt*Number(speed.value);
+  const mode=el('pathSel').value;
   if(mode==='circle'){
-
-    target.x=
-      W/2+
-      250*Math.cos(t*.75);
-
-    target.y=
-      H/2+
-      160*Math.sin(t*.95);
-
-  }
-
-
-  else if(mode==='sine'){
-
-    target.x=
-      80+
-      (W-160)*
-      ((Math.sin(t*.45)+1)/2);
-
-    target.y=
-      H/2+
-      150*Math.sin(t*1.35);
-
-  }
-
-
-  else{
-
+    target.x=W/2+250*Math.cos(t*.75);
+    target.y=H/2+160*Math.sin(t*.95);
+  }else if(mode==='sine'){
+    target.x=80+(W-160)*((Math.sin(t*.45)+1)/2);
+    target.y=H/2+150*Math.sin(t*1.35);
+  }else{
     if(t>nextRand){
-
-      randTarget={
-        x:100+Math.random()*(W-200),
-        y:90+Math.random()*(H-180)
-      };
-
+      randTarget={x:100+Math.random()*(W-200),y:90+Math.random()*(H-180)};
       nextRand=t+1.4;
-
     }
-
-    target.x +=
-      (randTarget.x-target.x)*
-      Math.min(1,dt*1.5);
-
-    target.y +=
-      (randTarget.y-target.y)*
-      Math.min(1,dt*1.5);
-
+    target.x+=(randTarget.x-target.x)*Math.min(1,dt*1.5);
+    target.y+=(randTarget.y-target.y)*Math.min(1,dt*1.5);
   }
-
 }
 
-
-function drawGrid(){
-
+function drawScene(){
   ctx.clearRect(0,0,W,H);
-
-  ctx.fillStyle='#030914';
-  ctx.fillRect(0,0,W,H);
-
-  ctx.strokeStyle='#102038';
-  ctx.lineWidth=1;
-
-
-  for(let x=0;x<W;x+=60){
-
-    ctx.beginPath();
-    ctx.moveTo(x,0);
-    ctx.lineTo(x,H);
-    ctx.stroke();
-
+  if(cameraActive && video.readyState>=2){
+    ctx.drawImage(video,0,0,W,H);
+    ctx.fillStyle='rgba(3,9,20,.10)';
+    ctx.fillRect(0,0,W,H);
+  }else{
+    ctx.fillStyle='#030914';
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#102038';
+    ctx.lineWidth=1;
+    for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   }
-
-
-  for(let y=0;y<H;y+=60){
-
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(W,y);
-    ctx.stroke();
-
-  }
-
 }
 
+function drawDetections(){
+  if(hidden) return;
+  ctx.font='700 14px ui-monospace,monospace';
+  ctx.textBaseline='top';
 
-function drawCross(x,y){
+  latestDetections.forEach(detection=>{
+    const active=detection===selectedDetection;
+    const color=active?'#ff5aa5':'#72e4ff';
+    ctx.strokeStyle=color;
+    ctx.lineWidth=active?4:2;
+    ctx.strokeRect(detection.x,detection.y,detection.width,detection.height);
+    ctx.fillStyle=active?'rgba(255,90,165,.13)':'rgba(114,228,255,.08)';
+    ctx.fillRect(detection.x,detection.y,detection.width,detection.height);
 
-  ctx.strokeStyle='#dcecff';
+    const label=(active?'TARGET • ':'')+detection.label.toUpperCase()+' '+(detection.score*100).toFixed(0)+'%';
+    const labelWidth=ctx.measureText(label).width+12;
+    const labelY=Math.max(0,detection.y-22);
+    ctx.fillStyle=color;
+    ctx.fillRect(detection.x,labelY,labelWidth,22);
+    ctx.fillStyle='#03101d';
+    ctx.fillText(label,detection.x+6,labelY+4);
+  });
+}
+
+function drawCross(x,y,locked){
+  ctx.strokeStyle=locked?'#44d17a':'#72e4ff';
   ctx.lineWidth=2;
-
   ctx.beginPath();
-
-  ctx.moveTo(x-18,y);
-  ctx.lineTo(x+18,y);
-
-  ctx.moveTo(x,y-18);
-  ctx.lineTo(x,y+18);
-
+  ctx.moveTo(x-18,y);ctx.lineTo(x+18,y);
+  ctx.moveTo(x,y-18);ctx.lineTo(x,y+18);
   ctx.stroke();
-
-
   ctx.beginPath();
-
-  ctx.arc(
-    x,
-    y,
-    Number(lockRadius.value),
-    0,
-    Math.PI*2
-  );
-
-  ctx.strokeStyle='#294c70';
-
+  ctx.arc(x,y,Number(lockRadius.value),0,Math.PI*2);
+  ctx.strokeStyle=locked?'rgba(68,209,122,.8)':'rgba(114,228,255,.55)';
   ctx.stroke();
-
 }
-
 
 function loop(now){
-
-  const dt=
-    Math.min(
-      (now-last)/1000,
-      .04
-    );
-
+  const dt=Math.min((now-last)/1000,.04);
   last=now;
+  if(running && !cameraActive) targetMotion(dt);
+  drawScene();
+  drawDetections();
 
+  const hasLiveTarget=cameraActive && selectedDetection &&
+    performance.now()-lastDetectionAt<1400 && !hidden;
 
-  if(running)
-    targetMotion(dt);
+  let mx=hasLiveTarget?selectedDetection.cx:target.x;
+  let my=hasLiveTarget?selectedDetection.cy:target.y;
 
-
-  drawGrid();
-
-
-  let mx=target.x,
-      my=target.y;
+  if(cameraActive && !hasLiveTarget){
+    mx=cam.x;
+    my=cam.y;
+  }
 
   const n=Number(noise.value);
-
-  mx +=
-    (Math.random()-.5)*n*2;
-
-  my +=
-    (Math.random()-.5)*n*2;
-
+  mx+=(Math.random()-.5)*n*2;
+  my+=(Math.random()-.5)*n*2;
 
   if(disturbance>0){
-
-    mx +=
-      Math.sin(t*25)*disturbance;
-
-    my +=
-      Math.cos(t*31)*
-      disturbance*.7;
-
+    mx+=Math.sin(now*.025)*disturbance;
+    my+=Math.cos(now*.031)*disturbance*.7;
     disturbance*=.985;
-
   }
 
-
-  let err=0,
-      locked=false;
-
-
-  if(running && !hidden){
-
-    const ex=
-      mx-cam.x;
-
-    const ey=
-      my-cam.y;
-
-    err=
-      Math.hypot(ex,ey);
-
-    const gain=
-      Number(kp.value);
-
-
-    cam.x +=
-      ex*gain;
-
-    cam.y +=
-      ey*gain;
-
-
-    pan +=
-      ex/W*60*gain;
-
-    tilt -=
-      ey/H*38*gain;
-
-
-    locked=
-      err<
-      Number(lockRadius.value);
-
-
+  let err=0,locked=false;
+  const trackable=running && !hidden && (!cameraActive || hasLiveTarget);
+  if(trackable){
+    const ex=mx-cam.x, ey=my-cam.y;
+    err=Math.hypot(ex,ey);
+    const gain=Number(kp.value);
+    cam.x+=ex*gain;
+    cam.y+=ey*gain;
+    pan+=ex/W*60*gain;
+    tilt-=ey/H*38*gain;
+    locked=err<Number(lockRadius.value);
     frames++;
-
-    if(locked)
-      lockedFrames++;
-
-
-    if(
-      locked &&
-      acquiredAt===null
-    ){
-
-      acquiredAt=
-        (performance.now()-startAt)/1000;
-
-    }
-
+    if(locked) lockedFrames++;
+    if(locked && acquiredAt===null) acquiredAt=(performance.now()-startAt)/1000;
   }
 
+  if(hasLiveTarget){
+    ctx.strokeStyle='#72e4ff';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cam.x,cam.y);ctx.lineTo(mx,my);ctx.stroke();
+  }
+  drawCross(cam.x,cam.y,locked);
 
-  drawCross(
-    cam.x,
-    cam.y
-  );
-
-
-  if(!hidden){
-
-    ctx.shadowBlur=24;
-    ctx.shadowColor='#ffd166';
-    ctx.fillStyle='#ffd166';
-
-    ctx.beginPath();
-
-    ctx.arc(
-      mx,
-      my,
-      8,
-      0,
-      Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.shadowBlur=0;
-
-
-    ctx.strokeStyle='#fff3b0';
-
-    ctx.beginPath();
-
-    ctx.arc(
-      mx,
-      my,
-      15,
-      0,
-      Math.PI*2
-    );
-
-    ctx.stroke();
-
+  if(!cameraActive && !hidden){
+    ctx.shadowBlur=24;ctx.shadowColor='#ffd166';ctx.fillStyle='#ffd166';
+    ctx.beginPath();ctx.arc(mx,my,8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    ctx.strokeStyle='#fff3b0';ctx.beginPath();ctx.arc(mx,my,15,0,Math.PI*2);ctx.stroke();
   }
 
+  ctx.fillStyle='#72e4ff';
+  ctx.font='700 14px ui-monospace,monospace';
+  ctx.fillText(cameraActive?'LIVE CAMERA • YOLOV8':'VIRTUAL CAMERA FOV',20,24);
 
-  ctx.fillStyle='#8aa3bd';
-  ctx.font='18px system-ui';
+  const ang=err/W*60;
+  el('err').textContent=err.toFixed(0)+' px';
+  el('ang').textContent=ang.toFixed(2)+'°';
+  el('pan').textContent=pan.toFixed(1)+'°';
+  el('tilt').textContent=tilt.toFixed(1)+'°';
+  el('fps').textContent=cameraActive && yoloLatency
+    ? (1000/yoloLatency).toFixed(1)
+    : (1/Math.max(dt,.001)).toFixed(0);
+  el('lock').textContent=(frames?100*lockedFrames/frames:0).toFixed(1)+'%';
+  el('acq').textContent=acquiredAt===null?'—':acquiredAt.toFixed(2)+' s';
+  el('lat').textContent=yoloLatency?yoloLatency.toFixed(0)+' ms':'—';
+  el('targetClass').textContent=hasLiveTarget?selectedDetection.label.toUpperCase():'—';
+  el('confidence').textContent=hasLiveTarget?(selectedDetection.score*100).toFixed(1)+'%':'—';
 
-  ctx.fillText(
-    'Virtual Camera FOV',
-    22,
-    32
-  );
-
-
-  ctx.fillText(
-    'Optical axis',
-    cam.x+25,
-    cam.y-12
-  );
-
-
-  const ang=
-    err/W*60;
-
-
-  el('err').textContent=
-    err.toFixed(0)+' px';
-
-  el('ang').textContent=
-    ang.toFixed(2)+'°';
-
-  el('pan').textContent=
-    pan.toFixed(1)+'°';
-
-  el('tilt').textContent=
-    tilt.toFixed(1)+'°';
-
-  el('fps').textContent=
-    (1/Math.max(dt,.001))
-      .toFixed(0);
-
-  el('lock').textContent=
-    (
-      frames?
-      100*lockedFrames/frames:
-      0
-    ).toFixed(1)+'%';
-
-  el('acq').textContent=
-    acquiredAt===null?
-    '—':
-    acquiredAt.toFixed(2)+' s';
-
-  el('lat').textContent=
-    (
-      1.5+
-      Math.random()*3
-    ).toFixed(1)+' ms';
-
-
-  let status='IDLE',
-      color='#8aa3bd',
-      msg='Target not acquired';
-
-
+  let status='IDLE',color='#8aa3bd',msg='Press Start Tracking to enable the camera';
   if(running){
-
     if(hidden){
-
-      status='TARGET LOST';
-      color='#ff5d73';
-      msg=
-        'Beacon hidden — reacquisition required';
-
+      status='TARGET LOST';color='#ff5d73';msg='Detection overlay hidden — reacquisition required';
+    }else if(cameraActive && !yoloModel){
+      status='AI LOADING';color='#ffb020';msg='Camera live — loading YOLO model';
+    }else if(cameraActive && !hasLiveTarget){
+      status='SEARCHING';color='#ffb020';msg='YOLO is searching for a target';
+    }else if(locked){
+      status='LOCKED';color='#44d17a';msg='Coarse alignment achieved';
+    }else{
+      status='TRACKING';color='#ffb020';msg='Controller reducing pointing error';
     }
-
-    else if(locked){
-
-      status='LOCKED';
-      color='#44d17a';
-      msg=
-        'Coarse alignment achieved';
-
-    }
-
-    else{
-
-      status='TRACKING';
-      color='#ffb020';
-      msg=
-        'Controller reducing pointing error';
-
-    }
-
   }
 
-
-  el('statusText').textContent=
-    status;
-
-  el('statusDot').style.background=
-    color;
-
-  el('lockText').textContent=
-    msg;
-
-
+  el('statusText').textContent=status;
+  el('statusDot').style.background=color;
+  el('lockText').textContent=msg;
   requestAnimationFrame(loop);
-
 }
 
-
-el('startBtn').onclick=()=>{
+el('startBtn').onclick=async()=>{
+  if(!cameraActive){
+    try{
+      await startCamera();
+    }catch(error){
+      console.error(error);
+      running=false;
+      setYoloState('Camera permission denied','error');
+      el('lockText').textContent='Allow camera access and try again';
+    }
+    return;
+  }
 
   running=!running;
-
-  if(
-    running &&
-    startAt===null
-  )
-    startAt=performance.now();
-
-  el('startBtn').textContent=
-    running?
-    '⏸ Pause Tracking':
-    '▶️ Start Tracking';
-
+  el('startBtn').textContent=running?'⏸ Pause Tracking':'▶️ Start Tracking';
 };
 
-
-el('disturbBtn').onclick=()=>{
-  disturbance=45;
-};
-
+el('disturbBtn').onclick=()=>{disturbance=45;};
 
 el('hideBtn').onclick=()=>{
-
   hidden=!hidden;
-
-  el('hideBtn').textContent=
-    hidden?
-    '👁 Show Beacon':
-    '👻 Hide Beacon';
-
+  el('hideBtn').textContent=hidden?'👁 Show Beacon':'👻 Hide Beacon';
 };
 
-
 el('resetBtn').onclick=reset;
-
+window.addEventListener('pagehide',stopCamera);
 
 reset();
-
 requestAnimationFrame(loop);
 
 

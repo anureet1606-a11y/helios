@@ -1724,17 +1724,41 @@ if (earthCanvas && earthWrap) {
     const beamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
     const beam=new THREE.Line(beamGeometry,new THREE.LineBasicMaterial({color:0xffb547,transparent:true,opacity:.72,blending:THREE.AdditiveBlending}));scene.add(beam);
 
-    let pointerX=0,pointerY=0;
-    window.addEventListener('pointermove',event=>{pointerX=(event.clientX/window.innerWidth-.5)*.3;pointerY=(event.clientY/window.innerHeight-.5)*.18},{passive:true});
+    let pointerX=0,pointerY=0,earthFrame=0,earthDisposed=false;
+    const updateEarthPointer=event=>{pointerX=(event.clientX/window.innerWidth-.5)*.3;pointerY=(event.clientY/window.innerHeight-.5)*.18};
+    window.addEventListener('pointermove',updateEarthPointer,{passive:true});
     function resizeEarth(){
       const rect=earthWrap.getBoundingClientRect();
       if(!rect.width||!rect.height)return;
       renderer.setSize(rect.width,rect.height,false);camera3d.aspect=rect.width/rect.height;camera3d.updateProjectionMatrix();
     }
-    new ResizeObserver(resizeEarth).observe(earthWrap);resizeEarth();
+    const earthResizeObserver=new ResizeObserver(resizeEarth);
+    earthResizeObserver.observe(earthWrap);resizeEarth();
+
+    function disposeEarth(){
+      if(earthDisposed)return;
+      earthDisposed=true;
+      cancelAnimationFrame(earthFrame);
+      earthResizeObserver.disconnect();
+      window.removeEventListener('pointermove',updateEarthPointer);
+      scene.traverse(object=>{
+        object.geometry?.dispose?.();
+        const materials=Array.isArray(object.material)?object.material:[object.material];
+        materials.filter(Boolean).forEach(material=>{
+          Object.values(material).forEach(value=>value?.isTexture&&value.dispose());
+          material.dispose?.();
+        });
+      });
+      renderer.dispose();
+      renderer.forceContextLoss();
+      earthCanvas.style.visibility='hidden';
+      earthWrap.classList.add('fallback');
+    }
+    window.addEventListener('helios:release-3d',disposeEarth,{once:true});
 
     const clock=new THREE.Clock();
     function renderEarth(){
+      if(earthDisposed)return;
       const time=clock.getElapsedTime();
       earth.rotation.y+=.00055;clouds.rotation.y+=.00082;
       earthGroup.rotation.x+=(pointerY-earthGroup.rotation.x)*.018;
@@ -1746,9 +1770,9 @@ if (earthCanvas && earthWrap) {
       positions.setXYZ(0,satellite.position.x,satellite.position.y,satellite.position.z);
       positions.setXYZ(1,earthGroup.position.x-1.15,earthGroup.position.y+3.55,earthGroup.position.z+1.1);
       positions.needsUpdate=true;
-      renderer.render(scene,camera3d);requestAnimationFrame(renderEarth);
+      renderer.render(scene,camera3d);earthFrame=requestAnimationFrame(renderEarth);
     }
-    renderEarth();
+    earthFrame=requestAnimationFrame(renderEarth);
   } catch (error) {
     console.warn('3D Earth unavailable; using visual fallback.',error);
     earthWrap.classList.add('fallback');
@@ -1838,7 +1862,8 @@ async function loadYolo(){
     try{
       await tf.setBackend('webgl');
     }catch(error){
-      console.warn('WebGL unavailable; using TensorFlow.js fallback.',error);
+      console.warn('WebGL unavailable; switching YOLO to the CPU backend.',error);
+      await tf.setBackend('cpu');
     }
 
     const model=await tf.loadGraphModel(MODEL_URL,{
@@ -1867,6 +1892,11 @@ async function startCamera(){
   if(!navigator.mediaDevices?.getUserMedia){
     throw new Error('Camera access is not supported in this browser');
   }
+
+  // The 3D hero and TensorFlow both use WebGL. Release the decorative
+  // renderer before tracking so YOLO always gets the available GPU context.
+  window.dispatchEvent(new Event('helios:release-3d'));
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
   setYoloState('Requesting camera…');
   cameraStream=await navigator.mediaDevices.getUserMedia({

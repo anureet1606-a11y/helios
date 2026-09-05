@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HELIOS — FSOC Coarse Tracking System</title>
+<meta name="theme-color" content="#02060b">
+<meta name="description" content="HELIOS — AI-assisted coarse alignment for free-space optical communication.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -24,6 +29,7 @@ body{
   background:linear-gradient(135deg,#06101d,#0b1e34);
   color:var(--text);
   min-height:100vh;
+  overflow-x:hidden;
 }
 
 /* =========================================================
@@ -539,6 +545,36 @@ body{
   }
 }
 
+/* Serene-inspired cinematic HELIOS experience */
+.landing{background:#02060b;color:#fff;position:relative;overflow:visible}
+.hero-stage{position:relative;min-height:100svh;overflow:hidden;background:radial-gradient(circle at 74% 65%,rgba(17,83,122,.24),transparent 33%),#02060b}
+.space-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(112,164,204,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(112,164,204,.055) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(to bottom,transparent,#000 22%,#000 78%,transparent);pointer-events:none}
+.scanlines{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 49.5%,rgba(160,218,255,.08) 50%,transparent 50.5%);background-size:100% 7px;opacity:.15;pointer-events:none}
+.site-header{position:absolute!important;inset:0 0 auto!important;z-index:50!important;height:80px;padding:0 4vw!important;display:flex!important;align-items:center!important;justify-content:space-between!important;border-bottom:1px solid rgba(255,255,255,.07)!important;background:rgba(2,6,11,.34)!important;backdrop-filter:blur(14px)!important}
+.site-brand{display:flex;align-items:center;gap:13px;color:#fff;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;letter-spacing:.28em}
+.brand-mark{position:relative;width:30px;height:30px;border:1px solid rgba(255,181,71,.55);border-radius:50%;display:grid;place-items:center}
+.brand-mark:before{content:"";width:6px;height:6px;border-radius:50%;background:#ffb547;box-shadow:0 0 14px #ffb547}
+.brand-mark:after{content:"";position:absolute;width:17px;height:17px;border:1px solid rgba(255,255,255,.18);border-radius:50%}
+.site-nav{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:42px}.site-nav a{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.17em;color:rgba(255,255,255,.5);text-decoration:none;transition:color .2s}.site-nav a:hover{color:#fff}
+.console-link,.launch-btn{border:0;border-radius:999px;background:#ffb547;color:#111820;font:600 14px Inter,sans-serif;padding:14px 27px;text-decoration:none;cursor:pointer;box-shadow:0 0 28px rgba(255,181,71,.18);transition:transform .2s,box-shadow .2s}.console-link:hover,.launch-btn:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(255,181,71,.32)}
+.hero-shell{position:relative;z-index:4;min-height:100svh;padding:132px 7vw 88px;display:flex;align-items:center}.hero-copy{position:relative;z-index:5;width:min(760px,61vw)}
+.hero-kicker{display:flex;align-items:center;gap:13px;margin-bottom:26px;color:rgba(169,216,245,.73);font:500 11px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.22em}.hero-kicker:before{content:"";width:42px;height:1px;background:#ffb547}
+.hero-title{margin:0;font-family:'Space Grotesk',sans-serif;font-size:clamp(58px,7.35vw,116px);font-weight:500;line-height:.9;letter-spacing:-.055em;text-shadow:0 0 40px rgba(203,229,255,.12)}.hero-title em{font-family:'Instrument Serif',serif;font-weight:400;color:#c7e8fb;letter-spacing:-.035em}
+.hero-lede{max-width:590px;margin:34px 0 0;color:rgba(255,255,255,.58);font-size:clamp(16px,1.4vw,19px);line-height:1.6}.hero-actions{display:flex;flex-wrap:wrap;gap:15px;margin-top:34px}.learn-btn{border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.035);color:#fff;font:500 14px Inter,sans-serif;padding:13px 27px;text-decoration:none;cursor:pointer;backdrop-filter:blur(8px)}
+.earth-wrap{position:absolute;z-index:2;inset:80px 0 0 37%;pointer-events:none}.earth-wrap canvas#earthCanvas{width:100%;height:100%;display:block;background:transparent;border:0;border-radius:0;aspect-ratio:auto}.earth-fallback{position:absolute;right:-12vw;bottom:-40vw;width:82vw;height:82vw;border-radius:50%;background:radial-gradient(circle at 38% 31%,#7dc8ed 0 3%,#2774a5 19%,#0b3c62 42%,#031221 67%);box-shadow:0 0 70px rgba(91,194,255,.38);opacity:0;transition:opacity .3s}.earth-wrap.fallback .earth-fallback{opacity:1}
+.hero-fade{position:absolute;z-index:3;inset:80px 0 0;background:linear-gradient(90deg,rgba(2,6,11,.94) 0%,rgba(2,6,11,.71) 38%,rgba(2,6,11,.08) 69%,rgba(2,6,11,.13) 100%);pointer-events:none}
+.status-pill{position:absolute;z-index:6;right:4vw;bottom:30px;display:flex;align-items:center;gap:14px;padding:11px 17px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(2,8,14,.48);backdrop-filter:blur(10px)}.status-light{width:8px;height:8px;border-radius:50%;background:#52e3a4;box-shadow:0 0 12px #52e3a4;animation:statusPulse 2.4s ease-in-out infinite}.status-pill small{display:block;color:rgba(255,255,255,.38);font:9px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.18em}.status-pill b{display:block;margin-top:2px;color:rgba(255,255,255,.78);font:500 10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.12em}.scroll-cue{position:absolute;z-index:6;left:4vw;bottom:27px;color:rgba(255,255,255,.36);font:10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.16em}
+.mission-section{position:relative;min-height:100vh;overflow:hidden;padding:120px 7vw;display:flex;align-items:center;background:radial-gradient(circle at 76% 30%,#0b3650 0%,#051726 31%,#02070d 68%)}.mission-inner{position:relative;z-index:3;width:100%}.section-kicker{color:#ffb547;font:500 11px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.24em}.mission-title{max-width:930px;margin:22px 0 0;font:500 clamp(46px,6.3vw,88px)/1.01 'Space Grotesk',sans-serif;letter-spacing:-.045em}.mission-title em{font-family:'Instrument Serif',serif;font-weight:400;color:#b8def3}.mission-copy{max-width:720px;margin-top:28px;color:rgba(255,255,255,.55);font-size:18px;line-height:1.6}
+.sequence{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:42px;max-width:1060px;margin-top:76px}.sequence:before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#ffb547,#75d8ff,transparent)}.sequence article{position:relative;padding-top:27px}.sequence article:before{content:"";position:absolute;top:-3px;left:0;width:7px;height:7px;border-radius:50%;background:#ffb547;box-shadow:0 0 13px #ffb547}.step-no{color:#ffb547;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.18em}.sequence h3{margin:12px 0 0;font:500 25px 'Space Grotesk',sans-serif}.sequence p{max-width:280px;margin-top:12px;color:rgba(255,255,255,.44);font-size:14px;line-height:1.65}
+.mission-orbits{position:absolute;right:-22vw;top:4%;width:min(82vw,1050px);aspect-ratio:1;border:1px solid rgba(128,216,255,.13);border-radius:50%;pointer-events:none}.mission-orbits:before,.mission-orbits:after{content:"";position:absolute;border:1px solid rgba(128,216,255,.09);border-radius:50%}.mission-orbits:before{inset:11%}.mission-orbits:after{inset:25%}.mission-beam{position:absolute;left:50%;top:50%;width:50%;height:1px;transform:rotate(-28deg);transform-origin:left;background:linear-gradient(90deg,rgba(255,181,71,.8),transparent)}
+@keyframes statusPulse{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+@media(max-width:960px){.site-nav{display:none}.hero-copy{width:min(650px,78vw)}.earth-wrap{inset:80px -18% 0 30%;opacity:.82}.hero-fade{background:linear-gradient(90deg,rgba(2,6,11,.96) 0%,rgba(2,6,11,.75) 52%,rgba(2,6,11,.18) 100%)}.sequence{gap:25px}}
+@media(max-width:680px){.site-header{height:68px;padding:0 20px!important}.site-brand{font-size:17px}.console-link{display:none}.hero-shell{min-height:100svh;padding:110px 22px 118px;align-items:flex-start}.hero-copy{width:100%}.hero-title{font-size:clamp(50px,15vw,72px);line-height:.93}.hero-lede{max-width:92%;font-size:16px}.earth-wrap{inset:37% -42% -8% 9%;opacity:.8}.hero-fade{inset:68px 0 0;background:linear-gradient(180deg,rgba(2,6,11,.92) 0%,rgba(2,6,11,.58) 43%,rgba(2,6,11,.06) 70%,rgba(2,6,11,.2) 100%)}.status-pill{right:20px;bottom:24px}.scroll-cue{display:none}.mission-section{padding:94px 22px}.mission-title{font-size:clamp(43px,13vw,64px)}.mission-copy{font-size:16px}.sequence{grid-template-columns:1fr;gap:28px;margin-top:52px}.sequence:before{display:none}.sequence article{border-top:1px solid rgba(255,255,255,.12);padding-top:20px}.sequence article:before{display:none}.mission-orbits{right:-65vw;top:15%;width:130vw;opacity:.5}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.status-light{animation:none}}
+.legacy{min-height:auto;background:radial-gradient(circle at 78% 20%,rgba(255,209,102,.10),transparent 24%),radial-gradient(circle at 15% 75%,rgba(48,110,180,.12),transparent 30%),linear-gradient(135deg,#050d18,#091a2d 55%,#07111f);overflow:hidden}
+.legacy>.landing-nav,.legacy>.hero{display:none}
+#simulation>header{display:flex!important}
+
 
 /* =========================================================
    EXISTING HELIOS SIMULATOR
@@ -869,6 +905,52 @@ footer{
      ========================================================= -->
 
 <section class="landing" id="home">
+  <div class="hero-stage">
+    <div class="space-grid" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="site-brand" href="#home" aria-label="HELIOS home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>HELIOS</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#problem">Challenge</a>
+        <a href="#working">System</a>
+        <a href="#features">Features</a>
+        <a href="#simulation">Demo</a>
+      </nav>
+      <a class="console-link" href="#simulation">Launch console</a>
+    </header>
+
+    <div class="earth-wrap" id="earthWrap" aria-hidden="true">
+      <canvas id="earthCanvas"></canvas>
+      <div class="earth-fallback"></div>
+    </div>
+    <div class="hero-fade" aria-hidden="true"></div>
+
+    <div class="hero-shell">
+      <div class="hero-copy">
+        <div class="hero-kicker">AI-assisted FSOC coarse alignment</div>
+        <h1 class="hero-title">Find the signal.<br><em>Hold the line.</em></h1>
+        <p class="hero-lede">Computer vision guides the optical terminal toward a distant target—then keeps it inside the link window.</p>
+        <div class="hero-actions">
+          <a class="launch-btn" href="#simulation">Enter tracking console</a>
+          <a class="learn-btn" href="#problem">Explore the mission</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-cue">Scroll to acquire ↓</div>
+    <div class="status-pill">
+      <span class="status-light" aria-hidden="true"></span>
+      <span><small>System status</small><b>Acquisition ready</b></span>
+    </div>
+  </div>
+
+</section>
+
+<section class="landing legacy" id="original-sections">
 
   <nav class="landing-nav">
 
@@ -1507,6 +1589,185 @@ footer{
 </div>
 
 
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+
+const earthCanvas = document.getElementById('earthCanvas');
+const earthWrap = document.getElementById('earthWrap');
+
+if (earthCanvas && earthWrap) {
+  try {
+    const renderer = new THREE.WebGLRenderer({canvas:earthCanvas,alpha:true,antialias:true,powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+
+    const scene = new THREE.Scene();
+    const camera3d = new THREE.PerspectiveCamera(38,1,.1,100);
+    camera3d.position.set(0,0,12);
+
+    function hash(x,y,seed=0){
+      const n=Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453;
+      return n-Math.floor(n);
+    }
+    function smoothNoise(x,y,seed=0){
+      const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+      const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);
+      const a=hash(ix,iy,seed),b=hash(ix+1,iy,seed),c=hash(ix,iy+1,seed),d=hash(ix+1,iy+1,seed);
+      return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a,b,ux),THREE.MathUtils.lerp(c,d,ux),uy);
+    }
+    function fbm(x,y,seed=0){
+      let value=0,amplitude=.56,frequency=1;
+      for(let i=0;i<5;i++){value+=smoothNoise(x*frequency,y*frequency,seed+i)*amplitude;frequency*=2.03;amplitude*=.49}
+      return value;
+    }
+    function makeEarthTexture(){
+      const textureCanvas=document.createElement('canvas');
+      textureCanvas.width=768;textureCanvas.height=384;
+      const g=textureCanvas.getContext('2d');
+      const image=g.createImageData(textureCanvas.width,textureCanvas.height);
+      for(let y=0;y<textureCanvas.height;y++){
+        const lat=Math.abs(y/textureCanvas.height*2-1);
+        for(let x=0;x<textureCanvas.width;x++){
+          const warpX=fbm(x/105,y/105,9)*3.4;
+          const warpY=fbm(x/135,y/135,21)*2.8;
+          const continent=fbm(x/84+warpX,y/76+warpY,3)-lat*.12;
+          const detail=fbm(x/22,y/22,37);
+          const land=continent>.58;
+          const polar=lat>.82+(detail-.5)*.07;
+          const i=(y*textureCanvas.width+x)*4;
+          if(polar){image.data[i]=205;image.data[i+1]=226;image.data[i+2]=235}
+          else if(land){const high=Math.max(0,detail-.58);image.data[i]=34+high*110;image.data[i+1]=83+detail*82;image.data[i+2]=63+detail*42}
+          else {const depth=detail*.75;image.data[i]=3+depth*13;image.data[i+1]=28+depth*40;image.data[i+2]=54+depth*79}
+          image.data[i+3]=255;
+        }
+      }
+      g.putImageData(image,0,0);
+      const texture=new THREE.CanvasTexture(textureCanvas);
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      return texture;
+    }
+    function makeCloudTexture(){
+      const textureCanvas=document.createElement('canvas');
+      textureCanvas.width=512;textureCanvas.height=256;
+      const g=textureCanvas.getContext('2d');
+      const image=g.createImageData(textureCanvas.width,textureCanvas.height);
+      for(let y=0;y<textureCanvas.height;y++)for(let x=0;x<textureCanvas.width;x++){
+        const n=fbm(x/58,y/38,81);
+        const alpha=Math.max(0,(n-.61)*4.1)*150;
+        const i=(y*textureCanvas.width+x)*4;
+        image.data[i]=225;image.data[i+1]=241;image.data[i+2]=255;image.data[i+3]=Math.min(150,alpha);
+      }
+      g.putImageData(image,0,0);
+      return new THREE.CanvasTexture(textureCanvas);
+    }
+
+    const earthGroup=new THREE.Group();
+    earthGroup.position.set(1.5,-2.55,0);
+    earthGroup.rotation.z=-.18;
+    scene.add(earthGroup);
+
+    const earth=new THREE.Mesh(
+      new THREE.SphereGeometry(4.25,72,72),
+      new THREE.MeshStandardMaterial({map:makeEarthTexture(),roughness:.82,metalness:.04,bumpScale:.08})
+    );
+    earth.rotation.y=-1.1;
+    earthGroup.add(earth);
+
+    const clouds=new THREE.Mesh(
+      new THREE.SphereGeometry(4.29,64,64),
+      new THREE.MeshPhongMaterial({map:makeCloudTexture(),transparent:true,opacity:.45,depthWrite:false})
+    );
+    clouds.rotation.y=-.7;
+    earthGroup.add(clouds);
+
+    const atmosphere=new THREE.Mesh(
+      new THREE.SphereGeometry(4.39,64,64),
+      new THREE.MeshBasicMaterial({color:0x5bbdff,transparent:true,opacity:.1,side:THREE.BackSide,blending:THREE.AdditiveBlending})
+    );
+    earthGroup.add(atmosphere);
+
+    scene.add(new THREE.HemisphereLight(0x82cfff,0x02050a,1.25));
+    const sunLight=new THREE.DirectionalLight(0xffffff,3.2);sunLight.position.set(-4,5,8);scene.add(sunLight);
+    const rimLight=new THREE.DirectionalLight(0x35aaff,2.2);rimLight.position.set(7,-1,-6);scene.add(rimLight);
+
+    const starPositions=[];
+    for(let i=0;i<650;i++)starPositions.push((Math.random()-.5)*34,(Math.random()-.5)*22,-4-Math.random()*10);
+    const starGeometry=new THREE.BufferGeometry();starGeometry.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));
+    scene.add(new THREE.Points(starGeometry,new THREE.PointsMaterial({color:0xcdeaff,size:.025,transparent:true,opacity:.7})));
+
+    const satellite=new THREE.Group();
+    const metal=new THREE.MeshStandardMaterial({color:0x8b969f,metalness:.9,roughness:.3});
+    const darkMetal=new THREE.MeshStandardMaterial({color:0x202a34,metalness:.85,roughness:.28});
+    const panelMat=new THREE.MeshStandardMaterial({color:0x173e67,metalness:.6,roughness:.36,emissive:0x061729});
+    const body=new THREE.Mesh(new THREE.BoxGeometry(.62,.62,.78),metal);satellite.add(body);
+    const lens=new THREE.Mesh(new THREE.CylinderGeometry(.2,.25,.28,24),new THREE.MeshStandardMaterial({color:0xffb547,emissive:0x7a3300,metalness:.65,roughness:.25}));lens.rotation.x=Math.PI/2;lens.position.z=.5;satellite.add(lens);
+    [-1,1].forEach(side=>{const arm=new THREE.Mesh(new THREE.BoxGeometry(.36,.06,.06),darkMetal);arm.position.x=side*.48;satellite.add(arm);const panel=new THREE.Mesh(new THREE.BoxGeometry(1.15,.04,.52),panelMat);panel.position.x=side*1.16;satellite.add(panel)});
+    satellite.scale.setScalar(.66);scene.add(satellite);
+
+    const orbitPoints=[];for(let i=0;i<130;i++){const a=i/129*Math.PI*2;orbitPoints.push(new THREE.Vector3(Math.cos(a)*6.2,Math.sin(a)*3.1,Math.sin(a)*1.15))}
+    const orbitLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(orbitPoints),new THREE.LineBasicMaterial({color:0x6bc9ff,transparent:true,opacity:.14}));orbitLine.position.copy(earthGroup.position);orbitLine.rotation.z=-.23;scene.add(orbitLine);
+    const beamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+    const beam=new THREE.Line(beamGeometry,new THREE.LineBasicMaterial({color:0xffb547,transparent:true,opacity:.72,blending:THREE.AdditiveBlending}));scene.add(beam);
+
+    let pointerX=0,pointerY=0,earthFrame=0,earthDisposed=false;
+    const updateEarthPointer=event=>{pointerX=(event.clientX/window.innerWidth-.5)*.3;pointerY=(event.clientY/window.innerHeight-.5)*.18};
+    window.addEventListener('pointermove',updateEarthPointer,{passive:true});
+    function resizeEarth(){
+      const rect=earthWrap.getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
+      renderer.setSize(rect.width,rect.height,false);camera3d.aspect=rect.width/rect.height;camera3d.updateProjectionMatrix();
+    }
+    const earthResizeObserver=new ResizeObserver(resizeEarth);
+    earthResizeObserver.observe(earthWrap);resizeEarth();
+
+    function disposeEarth(){
+      if(earthDisposed)return;
+      earthDisposed=true;
+      cancelAnimationFrame(earthFrame);
+      earthResizeObserver.disconnect();
+      window.removeEventListener('pointermove',updateEarthPointer);
+      scene.traverse(object=>{
+        object.geometry?.dispose?.();
+        const materials=Array.isArray(object.material)?object.material:[object.material];
+        materials.filter(Boolean).forEach(material=>{
+          Object.values(material).forEach(value=>value?.isTexture&&value.dispose());
+          material.dispose?.();
+        });
+      });
+      renderer.dispose();
+      renderer.forceContextLoss();
+      earthCanvas.style.visibility='hidden';
+      earthWrap.classList.add('fallback');
+    }
+    window.addEventListener('helios:release-3d',disposeEarth,{once:true});
+
+    const clock=new THREE.Clock();
+    function renderEarth(){
+      if(earthDisposed)return;
+      const time=clock.getElapsedTime();
+      earth.rotation.y+=.00055;clouds.rotation.y+=.00082;
+      earthGroup.rotation.x+=(pointerY-earthGroup.rotation.x)*.018;
+      earthGroup.rotation.y+=(pointerX-earthGroup.rotation.y)*.018;
+      const a=time*.19+.72;
+      satellite.position.set(earthGroup.position.x+Math.cos(a)*6.2,earthGroup.position.y+Math.sin(a)*3.1,Math.sin(a)*1.15+.6);
+      satellite.rotation.y=-a+.35;satellite.rotation.z=-.18;
+      const positions=beam.geometry.attributes.position;
+      positions.setXYZ(0,satellite.position.x,satellite.position.y,satellite.position.z);
+      positions.setXYZ(1,earthGroup.position.x-1.15,earthGroup.position.y+3.55,earthGroup.position.z+1.1);
+      positions.needsUpdate=true;
+      renderer.render(scene,camera3d);earthFrame=requestAnimationFrame(renderEarth);
+    }
+    earthFrame=requestAnimationFrame(renderEarth);
+  } catch (error) {
+    console.warn('3D Earth unavailable; using visual fallback.',error);
+    earthWrap.classList.add('fallback');
+  }
+}
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script>
 
@@ -1589,7 +1850,8 @@ async function loadYolo(){
     try{
       await tf.setBackend('webgl');
     }catch(error){
-      console.warn('WebGL unavailable; using TensorFlow.js fallback.',error);
+      console.warn('WebGL unavailable; switching YOLO to the CPU backend.',error);
+      await tf.setBackend('cpu');
     }
 
     const model=await tf.loadGraphModel(MODEL_URL,{
@@ -1618,6 +1880,11 @@ async function startCamera(){
   if(!navigator.mediaDevices?.getUserMedia){
     throw new Error('Camera access is not supported in this browser');
   }
+
+  // The 3D hero and TensorFlow both use WebGL. Release the decorative
+  // renderer before tracking so YOLO always gets the available GPU context.
+  window.dispatchEvent(new Event('helios:release-3d'));
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
   setYoloState('Requesting camera…');
   cameraStream=await navigator.mediaDevices.getUserMedia({

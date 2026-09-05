@@ -565,12 +565,13 @@ body{
 .hero-fade{position:absolute;z-index:3;inset:80px 0 0;background:linear-gradient(90deg,rgba(2,6,11,.94) 0%,rgba(2,6,11,.71) 38%,rgba(2,6,11,.08) 69%,rgba(2,6,11,.13) 100%);pointer-events:none}
 .status-pill{position:absolute;z-index:6;right:4vw;bottom:30px;display:flex;align-items:center;gap:14px;padding:11px 17px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(2,8,14,.48);backdrop-filter:blur(10px)}.status-light{width:8px;height:8px;border-radius:50%;background:#52e3a4;box-shadow:0 0 12px #52e3a4;animation:statusPulse 2.4s ease-in-out infinite}.status-pill small{display:block;color:rgba(255,255,255,.38);font:9px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.18em}.status-pill b{display:block;margin-top:2px;color:rgba(255,255,255,.78);font:500 10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.12em}.scroll-cue{position:absolute;z-index:6;left:4vw;bottom:27px;color:rgba(255,255,255,.36);font:10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.16em}
 .mission-section{position:relative;min-height:100vh;overflow:hidden;padding:120px 7vw;display:flex;align-items:center;background:radial-gradient(circle at 76% 30%,#0b3650 0%,#051726 31%,#02070d 68%)}.mission-inner{position:relative;z-index:3;width:100%}.section-kicker{color:#ffb547;font:500 11px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.24em}.mission-title{max-width:930px;margin:22px 0 0;font:500 clamp(46px,6.3vw,88px)/1.01 'Space Grotesk',sans-serif;letter-spacing:-.045em}.mission-title em{font-family:'Instrument Serif',serif;font-weight:400;color:#b8def3}.mission-copy{max-width:720px;margin-top:28px;color:rgba(255,255,255,.55);font-size:18px;line-height:1.6}
-.sequence{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:42px;max-width:1060px;margin-top:76px}.sequence:before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#ffb547,#75d8ff,transparent)}.sequence article{position:relative;padding-top:27px}.sequence article:before{content:"";position:absolute;top:-3px;left:0;width:7px;height:7px;border-radius:50%;background:#ffb547;box-shadow:0 0 13px #ffb547}.step-no{color:#ffb547;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.18em}.sequence h3{margin:12px 0 0;font:500 25px 'Space Grotesk',sans-serif}.sequence p{max-width:280px;margin-top:12px;color:rgba(255,255,255,.44);font-size:14px;line-height:1.65}
-.mission-orbits{position:absolute;right:-22vw;top:4%;width:min(82vw,1050px);aspect-ratio:1;border:1px solid rgba(128,216,255,.13);border-radius:50%;pointer-events:none}.mission-orbits:before,.mission-orbits:after{content:"";position:absolute;border:1px solid rgba(128,216,255,.09);border-radius:50%}.mission-orbits:before{inset:11%}.mission-orbits:after{inset:25%}.mission-beam{position:absolute;left:50%;top:50%;width:50%;height:1px;transform:rotate(-28deg);transform-origin:left;background:linear-gradient(90deg,rgba(255,181,71,.8),transparent)}
+.sequence{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:42px;max-width:1060px;margin-top:76px}.sequence:before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:rgba(255,255,255,.1)}.sequence article{position:relative;padding-top:27px}.sequence article:before{content:"";position:absolute;top:-3px;left:0;width:7px;height:7px;border-radius:50%;background:#ffb547;box-shadow:0 0 13px #ffb547}.step-no{color:#ffb547;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.18em}.sequence h3{margin:12px 0 0;font:500 25px 'Space Grotesk',sans-serif}.sequence p{max-width:280px;margin-top:12px;color:rgba(255,255,255,.44);font-size:14px;line-height:1.65}
+.mission-orbits{position:absolute;right:-22vw;top:4%;width:min(82vw,1050px);aspect-ratio:1;border:1px solid rgba(128,216,255,.13);border-radius:50%;pointer-events:none;will-change:transform}.mission-orbits:before,.mission-orbits:after{content:"";position:absolute;border:1px solid rgba(128,216,255,.09);border-radius:50%}.mission-orbits:before{inset:11%}.mission-orbits:after{inset:25%}.mission-beam{position:absolute;left:50%;top:50%;width:50%;height:1px;transform:rotate(-28deg);transform-origin:left;background:linear-gradient(90deg,rgba(255,181,71,.8),transparent)}.mission-orbit-track{position:absolute;inset:7%;border:1px dashed rgba(255,181,71,.25);border-radius:50%;animation:orbitSpin 18s linear infinite}.mission-orbit-track:after{content:"";position:absolute;left:15%;top:12%;width:10px;height:10px;border-radius:50%;background:#ffb547;box-shadow:0 0 20px #ffb547}.mission-node{position:absolute;left:50%;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);border:1px solid rgba(169,229,255,.8);border-radius:50%;box-shadow:0 0 25px rgba(93,203,255,.7)}.mission-inner{will-change:transform}.sequence-progress{position:absolute;z-index:1;left:0;right:0;top:0;height:1px;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,#ffb547,#75d8ff,transparent);will-change:transform}
 @keyframes statusPulse{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes orbitSpin{to{transform:rotate(360deg)}}
 @media(max-width:960px){.site-nav{display:none}.hero-copy{width:min(650px,78vw)}.earth-wrap{inset:80px -18% 0 30%;opacity:.82}.hero-fade{background:linear-gradient(90deg,rgba(2,6,11,.96) 0%,rgba(2,6,11,.75) 52%,rgba(2,6,11,.18) 100%)}.sequence{gap:25px}}
 @media(max-width:680px){.site-header{height:68px;padding:0 20px!important}.site-brand{font-size:17px}.console-link{display:none}.hero-shell{min-height:100svh;padding:110px 22px 118px;align-items:flex-start}.hero-copy{width:100%}.hero-title{font-size:clamp(50px,15vw,72px);line-height:.93}.hero-lede{max-width:92%;font-size:16px}.earth-wrap{inset:37% -42% -8% 9%;opacity:.8}.hero-fade{inset:68px 0 0;background:linear-gradient(180deg,rgba(2,6,11,.92) 0%,rgba(2,6,11,.58) 43%,rgba(2,6,11,.06) 70%,rgba(2,6,11,.2) 100%)}.status-pill{right:20px;bottom:24px}.scroll-cue{display:none}.mission-section{padding:94px 22px}.mission-title{font-size:clamp(43px,13vw,64px)}.mission-copy{font-size:16px}.sequence{grid-template-columns:1fr;gap:28px;margin-top:52px}.sequence:before{display:none}.sequence article{border-top:1px solid rgba(255,255,255,.12);padding-top:20px}.sequence article:before{display:none}.mission-orbits{right:-65vw;top:15%;width:130vw;opacity:.5}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.status-light{animation:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.status-light,.mission-orbit-track{animation:none}}
 .legacy{min-height:auto;background:radial-gradient(circle at 78% 20%,rgba(255,209,102,.10),transparent 24%),radial-gradient(circle at 15% 75%,rgba(48,110,180,.12),transparent 30%),linear-gradient(135deg,#050d18,#091a2d 55%,#07111f);overflow:hidden}
 .legacy>.landing-nav,.legacy>.hero{display:none}
 #simulation>header{display:flex!important}
@@ -915,7 +916,7 @@ footer{
         <span>HELIOS</span>
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
-        <a href="#problem">Challenge</a>
+        <a href="#mission">Mission</a>
         <a href="#working">System</a>
         <a href="#features">Features</a>
         <a href="#simulation">Demo</a>
@@ -936,7 +937,7 @@ footer{
         <p class="hero-lede">Computer vision guides the optical terminal toward a distant target—then keeps it inside the link window.</p>
         <div class="hero-actions">
           <a class="launch-btn" href="#simulation">Enter tracking console</a>
-          <a class="learn-btn" href="#problem">Explore the mission</a>
+          <a class="learn-btn" href="#mission">Explore the mission</a>
         </div>
       </div>
     </div>
@@ -947,6 +948,26 @@ footer{
       <span><small>System status</small><b>Acquisition ready</b></span>
     </div>
   </div>
+
+  <section class="mission-section" id="mission">
+    <div class="space-grid" aria-hidden="true"></div>
+    <div class="mission-orbits" id="missionField" aria-hidden="true">
+      <span class="mission-orbit-track"></span>
+      <span class="mission-beam"></span>
+      <span class="mission-node"></span>
+    </div>
+    <div class="mission-inner" id="missionCopy">
+      <div class="section-kicker">The alignment sequence</div>
+      <h2 class="mission-title">From a point of light<br>to a <em>stable optical link.</em></h2>
+      <p class="mission-copy">HELIOS closes the gap between seeing a target and communicating with it—using a phone camera for the demonstrator, object detection for acquisition, and a servo platform for physical alignment.</p>
+      <div class="sequence">
+        <span class="sequence-progress" id="sequenceProgress" aria-hidden="true"></span>
+        <article><span class="step-no">01</span><h3>Acquire</h3><p>Vision identifies the target inside a wide field of view.</p></article>
+        <article><span class="step-no">02</span><h3>Align</h3><p>Angular error becomes pan-and-tilt correction in real time.</p></article>
+        <article><span class="step-no">03</span><h3>Lock</h3><p>The optical axis settles inside the communication window.</p></article>
+      </div>
+    </div>
+  </section>
 
 </section>
 
@@ -1589,15 +1610,15 @@ footer{
 </div>
 
 
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
 
 const earthCanvas = document.getElementById('earthCanvas');
 const earthWrap = document.getElementById('earthWrap');
 
 if (earthCanvas && earthWrap) {
   try {
-    const renderer = new THREE.WebGLRenderer({canvas:earthCanvas,alpha:true,antialias:true,powerPreference:'high-performance'});
+    const renderer = new THREE.WebGLRenderer({canvas:earthCanvas,alpha:true,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1723,26 +1744,14 @@ if (earthCanvas && earthWrap) {
     const earthResizeObserver=new ResizeObserver(resizeEarth);
     earthResizeObserver.observe(earthWrap);resizeEarth();
 
-    function disposeEarth(){
+    function pauseEarth(){
       if(earthDisposed)return;
       earthDisposed=true;
       cancelAnimationFrame(earthFrame);
       earthResizeObserver.disconnect();
       window.removeEventListener('pointermove',updateEarthPointer);
-      scene.traverse(object=>{
-        object.geometry?.dispose?.();
-        const materials=Array.isArray(object.material)?object.material:[object.material];
-        materials.filter(Boolean).forEach(material=>{
-          Object.values(material).forEach(value=>value?.isTexture&&value.dispose());
-          material.dispose?.();
-        });
-      });
-      renderer.dispose();
-      renderer.forceContextLoss();
-      earthCanvas.style.visibility='hidden';
-      earthWrap.classList.add('fallback');
     }
-    window.addEventListener('helios:release-3d',disposeEarth,{once:true});
+    window.addEventListener('helios:release-3d',pauseEarth,{once:true});
 
     const clock=new THREE.Clock();
     function renderEarth(){
@@ -1765,6 +1774,29 @@ if (earthCanvas && earthWrap) {
     console.warn('3D Earth unavailable; using visual fallback.',error);
     earthWrap.classList.add('fallback');
   }
+}
+
+const missionSection=document.getElementById('mission');
+const missionField=document.getElementById('missionField');
+const missionCopy=document.getElementById('missionCopy');
+const sequenceProgress=document.getElementById('sequenceProgress');
+if(missionSection&&missionField&&missionCopy&&sequenceProgress&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  let missionFrame=0;
+  const clamp01=value=>Math.min(1,Math.max(0,value));
+  const updateMissionMotion=()=>{
+    const rect=missionSection.getBoundingClientRect();
+    const progress=clamp01((window.innerHeight-rect.top)/(window.innerHeight+rect.height));
+    missionField.style.transform=`translate3d(0,${80-progress*160}px,0)`;
+    missionCopy.style.transform=`translate3d(0,${45-progress*70}px,0)`;
+    sequenceProgress.style.transform=`scaleX(${clamp01((progress-.14)/.5)})`;
+    missionFrame=0;
+  };
+  const requestMissionMotion=()=>{
+    if(!missionFrame)missionFrame=requestAnimationFrame(updateMissionMotion);
+  };
+  window.addEventListener('scroll',requestMissionMotion,{passive:true});
+  window.addEventListener('resize',requestMissionMotion,{passive:true});
+  updateMissionMotion();
 }
 </script>
 
@@ -1881,8 +1913,8 @@ async function startCamera(){
     throw new Error('Camera access is not supported in this browser');
   }
 
-  // The 3D hero and TensorFlow both use WebGL. Release the decorative
-  // renderer before tracking so YOLO always gets the available GPU context.
+  // Freeze the off-screen 3D hero before tracking so TensorFlow gets the GPU
+  // without replacing the rendered Earth with a flat fallback.
   window.dispatchEvent(new Event('helios:release-3d'));
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 

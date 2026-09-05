@@ -962,10 +962,147 @@ footer{
   .fourier-metrics{grid-template-columns:1fr}
 }
 
+/* Desktop experience notice */
+.desktop-notice[hidden]{display:none}
+.desktop-notice{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:grid;
+  place-items:center;
+  padding:22px;
+  background:rgba(0,5,11,.72);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  animation:noticeFade .28s ease-out;
+}
+.desktop-notice-panel{
+  position:relative;
+  width:min(100%,480px);
+  overflow:hidden;
+  padding:34px;
+  border:1px solid rgba(114,228,255,.24);
+  border-radius:24px;
+  background:linear-gradient(145deg,rgba(14,37,60,.98),rgba(4,12,23,.99));
+  box-shadow:0 30px 90px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
+  animation:noticeRise .35s cubic-bezier(.2,.8,.2,1);
+}
+.desktop-notice-panel::before{
+  content:"";
+  position:absolute;
+  width:230px;
+  height:230px;
+  right:-105px;
+  top:-130px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(114,228,255,.18),transparent 67%);
+  pointer-events:none;
+}
+.desktop-notice-close{
+  position:absolute;
+  z-index:2;
+  top:16px;
+  right:16px;
+  width:36px;
+  height:36px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:50%;
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.68);
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+.desktop-notice-icon{
+  position:relative;
+  width:58px;
+  height:42px;
+  margin-bottom:25px;
+  border:1px solid rgba(114,228,255,.5);
+  border-radius:8px;
+  background:radial-gradient(circle at 50% 46%,rgba(255,181,71,.3),transparent 25%),rgba(3,12,23,.9);
+  box-shadow:0 0 24px rgba(114,228,255,.12),inset 0 0 18px rgba(114,228,255,.06);
+}
+.desktop-notice-icon::before{
+  content:"";
+  position:absolute;
+  inset:8px;
+  border:1px solid rgba(114,228,255,.16);
+  background:linear-gradient(90deg,transparent 49%,rgba(114,228,255,.2) 50%,transparent 51%),linear-gradient(transparent 49%,rgba(114,228,255,.2) 50%,transparent 51%);
+}
+.desktop-notice-icon::after{
+  content:"";
+  position:absolute;
+  left:17px;
+  right:17px;
+  bottom:-8px;
+  height:7px;
+  border-bottom:2px solid rgba(114,228,255,.45);
+}
+.desktop-notice-kicker{margin:0 0 12px;color:#ffb547;font:500 10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.22em}
+.desktop-notice-title{margin:0;color:#fff;font:500 clamp(30px,6vw,40px)/1.05 'Space Grotesk',sans-serif;letter-spacing:-.035em}
+.desktop-notice-copy{margin:18px 0 0;color:rgba(238,246,255,.62);font-size:15px;line-height:1.65}
+.desktop-notice-button{
+  width:100%;
+  margin-top:28px;
+  padding:14px 20px;
+  border:0;
+  border-radius:999px;
+  background:#ffb547;
+  color:#111820;
+  font:700 14px Inter,sans-serif;
+  cursor:pointer;
+  box-shadow:0 0 26px rgba(255,181,71,.2);
+}
+.desktop-notice-button:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.desktop-notice-button:focus-visible,.desktop-notice-close:focus-visible{outline:3px solid #72e4ff;outline-offset:3px}
+body.notice-open{overflow:hidden}
+@keyframes noticeFade{from{opacity:0}}
+@keyframes noticeRise{from{opacity:0;transform:translateY(18px) scale(.98)}}
+@media(max-width:520px){.desktop-notice-panel{padding:30px 24px 24px;border-radius:20px}.desktop-notice-title{font-size:32px}}
+@media(prefers-reduced-motion:reduce){.desktop-notice,.desktop-notice-panel{animation:none}}
+
 </style>
 </head>
 
 <body>
+
+<div class="desktop-notice" id="desktopNotice" role="dialog" aria-modal="true" aria-labelledby="desktopNoticeTitle" hidden>
+  <div class="desktop-notice-panel">
+    <button class="desktop-notice-close" id="desktopNoticeClose" type="button" aria-label="Close desktop recommendation">×</button>
+    <div class="desktop-notice-icon" aria-hidden="true"></div>
+    <p class="desktop-notice-kicker">HELIOS system notice</p>
+    <h2 class="desktop-notice-title" id="desktopNoticeTitle">Desktop experience recommended.</h2>
+    <p class="desktop-notice-copy">HELIOS combines real-time 3D rendering, camera access, and on-device AI. For the smoothest tracking demonstration, use a laptop or desktop browser.</p>
+    <button class="desktop-notice-button" id="desktopNoticeContinue" type="button">Continue to HELIOS</button>
+  </div>
+</div>
+
+<script>
+(()=>{
+  const notice=document.getElementById('desktopNotice');
+  const continueButton=document.getElementById('desktopNoticeContinue');
+  const closeButton=document.getElementById('desktopNoticeClose');
+  let alreadySeen=false;
+  try{alreadySeen=sessionStorage.getItem('heliosDesktopNoticeSeen')==='1'}catch(error){}
+  if(alreadySeen)return;
+  notice.hidden=false;
+  document.body.classList.add('notice-open');
+  requestAnimationFrame(()=>continueButton.focus());
+  const dismiss=()=>{
+    notice.hidden=true;
+    document.body.classList.remove('notice-open');
+    try{sessionStorage.setItem('heliosDesktopNoticeSeen','1')}catch(error){}
+  };
+  continueButton.addEventListener('click',dismiss);
+  closeButton.addEventListener('click',dismiss);
+  notice.addEventListener('click',event=>{if(event.target===notice)dismiss()});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!notice.hidden)dismiss()});
+})();
+</script>
 
 <!-- =========================================================
      LANDING PAGE

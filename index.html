@@ -1493,7 +1493,7 @@ body.notice-open{overflow:hidden}
       <canvas id="cv" width="960" height="600"></canvas>
 
       <div class="ai-strip">
-        <span><b>YOLOv8n</b> • on-device object detection</span>
+        <span><b>YOLOv8n + Laser Vision</b> • target and green-spot detection</span>
         <span id="yoloState">Camera off</span>
       </div>
 
@@ -1502,6 +1502,11 @@ body.notice-open{overflow:hidden}
         <button class="primary" id="startBtn">
           ▶️ Start Tracking
         </button>
+
+        <button id="testVideoBtn">
+          🎞 Test Recorded Video
+        </button>
+        <input id="testVideoInput" type="file" accept="video/*" hidden>
 
         <button id="disturbBtn">
           ⚡ Add Disturbance
@@ -1642,6 +1647,16 @@ body.notice-open{overflow:hidden}
       <div class="metric">
         <div class="k">YOLO confidence</div>
         <div class="v" id="confidence">—</div>
+      </div>
+
+      <div class="metric">
+        <div class="k">Laser spot</div>
+        <div class="v" id="laserSpot">—</div>
+      </div>
+
+      <div class="metric">
+        <div class="k">Laser confidence</div>
+        <div class="v" id="laserConfidence">—</div>
       </div>
 
     </div>
@@ -2019,6 +2034,14 @@ const canvas=document.getElementById('cv'),
 ctx=canvas.getContext('2d'),
 video= document.getElementById('cameraFeed');
 
+// A small off-screen frame keeps laser detection fast enough to run beside YOLO.
+const laserSampler=document.createElement('canvas'),
+laserCtx=laserSampler.getContext('2d',{willReadFrequently:true}),
+LASER_W=480,
+LASER_H=300;
+laserSampler.width=LASER_W;
+laserSampler.height=LASER_H;
+
 const W=canvas.width,
 H=canvas.height,
 MODEL_SIZE=640,
@@ -2042,6 +2065,7 @@ let running=false,
 hidden=false,
 cameraActive=false,
 cameraStream=null,
+cameraObjectUrl=null,
 yoloModel=null,
 yoloLoading=null,
 detecting=false,
@@ -2049,6 +2073,10 @@ latestDetections=[],
 selectedDetection=null,
 lastDetectionAt=0,
 yoloLatency=0,
+latestLaserSpot=null,
+lastLaserAt=0,
+lastLaserScanAt=0,
+laserLatency=0,
 t=0,
 last=performance.now(),
 target={x:W*.76,y:H*.38},
@@ -2152,10 +2180,116 @@ function stopCamera(){
   cameraStream?.getTracks().forEach(track=>track.stop());
   cameraStream=null;
   video.srcObject=null;
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  if(cameraObjectUrl){
+    URL.revokeObjectURL(cameraObjectUrl);
+    cameraObjectUrl=null;
+  }
   cameraActive=false;
   detecting=false;
   latestDetections=[];
   selectedDetection=null;
+  latestLaserSpot=null;
+  lastLaserAt=0;
+}
+
+async function startRecordedVideo(file){
+  stopCamera();
+  window.dispatchEvent(new Event('helios:release-3d'));
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+  cameraObjectUrl=URL.createObjectURL(file);
+  video.src=cameraObjectUrl;
+  video.loop=true;
+  video.muted=true;
+  await video.play();
+  cameraActive=true;
+  running=true;
+  startAt=performance.now();
+  el('startBtn').textContent='⏸ Pause Tracking';
+  setYoloState('Test video • loading AI…');
+
+  loadYolo()
+    .then(()=>detectionLoop())
+    .catch(()=>{});
+}
+
+function laserRectAverage(integral,x0,y0,x1,y1){
+  x0=Math.max(0,x0);y0=Math.max(0,y0);
+  x1=Math.min(LASER_W,x1);y1=Math.min(LASER_H,y1);
+  const stride=LASER_W+1;
+  const sum=integral[y1*stride+x1]-integral[y0*stride+x1]
+    -integral[y1*stride+x0]+integral[y0*stride+x0];
+  return sum/Math.max(1,(x1-x0)*(y1-y0));
+}
+
+function runLaserFrame(now=performance.now()){
+  if(!cameraActive || video.readyState<2 || now-lastLaserScanAt<110) return;
+  lastLaserScanAt=now;
+  const started=performance.now();
+
+  laserCtx.drawImage(video,0,0,LASER_W,LASER_H);
+  const pixels=laserCtx.getImageData(0,0,LASER_W,LASER_H).data;
+  const evidence=new Float32Array(LASER_W*LASER_H);
+
+  for(let i=0,p=0;i<pixels.length;i+=4,p++){
+    const red=pixels[i],green=pixels[i+1],blue=pixels[i+2];
+    const brightness=Math.max(0,Math.min(1,(green-135)/120));
+    const excess=Math.max(0,Math.min(1,(green-Math.max(red,blue)-28)/125));
+    evidence[p]=brightness*excess;
+  }
+
+  // Integral image gives a cheap point-vs-broad-green test. It rejects most
+  // foliage and green illumination while retaining the laser's compact core.
+  const stride=LASER_W+1;
+  const integral=new Float32Array((LASER_W+1)*(LASER_H+1));
+  for(let y=1;y<=LASER_H;y++){
+    let rowSum=0;
+    for(let x=1;x<=LASER_W;x++){
+      rowSum+=evidence[(y-1)*LASER_W+x-1];
+      integral[y*stride+x]=integral[(y-1)*stride+x]+rowSum;
+    }
+  }
+
+  let best=null;
+  for(let y=2;y<LASER_H-2;y+=2){
+    for(let x=2;x<LASER_W-2;x+=2){
+      const small=laserRectAverage(integral,x-2,y-2,x+3,y+3);
+      if(small<.10) continue;
+      const broad=laserRectAverage(integral,x-10,y-10,x+11,y+11);
+      const pointness=small-broad;
+      const confidence=Math.max(0,Math.min(1,.70*small+1.8*pointness));
+      if(pointness>.012 && (!best || confidence>best.confidence)){
+        best={x,y,small,confidence};
+      }
+    }
+  }
+
+  if(best && best.confidence>=.20){
+    let sum=0,weightedX=0,weightedY=0;
+    const threshold=Math.max(.07,best.small*.34);
+    for(let y=Math.max(0,best.y-14);y<Math.min(LASER_H,best.y+15);y++){
+      for(let x=Math.max(0,best.x-14);x<Math.min(LASER_W,best.x+15);x++){
+        const weight=evidence[y*LASER_W+x];
+        if(weight<threshold) continue;
+        const squared=weight*weight;
+        sum+=squared;weightedX+=x*squared;weightedY+=y*squared;
+      }
+    }
+    const sx=sum?weightedX/sum:best.x;
+    const sy=sum?weightedY/sum:best.y;
+    latestLaserSpot={
+      x:sx/LASER_W*W,
+      y:sy/LASER_H*H,
+      confidence:best.confidence
+    };
+    lastLaserAt=now;
+  }else if(now-lastLaserAt>450){
+    latestLaserSpot=null;
+  }
+  laserLatency=performance.now()-started;
 }
 
 function chooseTarget(detections){
@@ -2272,6 +2406,8 @@ function reset(){
   el('hideBtn').textContent='👻 Hide Beacon';
   el('targetClass').textContent='—';
   el('confidence').textContent='—';
+  el('laserSpot').textContent='—';
+  el('laserConfidence').textContent='—';
   setYoloState('Camera off');
 }
 
@@ -2334,6 +2470,27 @@ function drawDetections(){
   });
 }
 
+function drawLaserDetection(spot){
+  if(!spot || hidden) return;
+  ctx.save();
+  ctx.strokeStyle='#ff496c';
+  ctx.fillStyle='rgba(255,73,108,.16)';
+  ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(spot.x,spot.y,19,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(spot.x-30,spot.y);ctx.lineTo(spot.x+30,spot.y);
+  ctx.moveTo(spot.x,spot.y-30);ctx.lineTo(spot.x,spot.y+30);ctx.stroke();
+  ctx.font='700 14px ui-monospace,monospace';
+  const label='LASER SPOT '+(spot.confidence*100).toFixed(0)+'%';
+  const width=ctx.measureText(label).width+12;
+  const labelX=Math.max(0,Math.min(W-width,spot.x+23));
+  const labelY=Math.max(0,spot.y-34);
+  ctx.fillStyle='#ff496c';ctx.fillRect(labelX,labelY,width,22);
+  ctx.fillStyle='#15030a';ctx.fillText(label,labelX+6,labelY+4);
+  ctx.restore();
+}
+
 function drawCross(x,y,locked){
   ctx.strokeStyle=locked?'#44d17a':'#72e4ff';
   ctx.lineWidth=2;
@@ -2353,12 +2510,17 @@ function loop(now){
   if(running && !cameraActive) targetMotion(dt);
   drawScene();
   drawDetections();
+  runLaserFrame(now);
 
   const hasLiveTarget=cameraActive && selectedDetection &&
     performance.now()-lastDetectionAt<1400 && !hidden;
+  const hasLaserSpot=cameraActive && latestLaserSpot &&
+    performance.now()-lastLaserAt<500 && !hidden;
 
   let mx=hasLiveTarget?selectedDetection.cx:target.x;
   let my=hasLiveTarget?selectedDetection.cy:target.y;
+  let opticalX=hasLaserSpot?latestLaserSpot.x:cam.x;
+  let opticalY=hasLaserSpot?latestLaserSpot.y:cam.y;
 
   if(cameraActive && !hasLiveTarget){
     mx=cam.x;
@@ -2376,13 +2538,17 @@ function loop(now){
   }
 
   let err=0,locked=false;
-  const trackable=running && !hidden && (!cameraActive || hasLiveTarget);
+  const trackable=running && !hidden && (!cameraActive || (hasLiveTarget && hasLaserSpot));
   if(trackable){
-    const ex=mx-cam.x, ey=my-cam.y;
+    const ex=mx-opticalX, ey=my-opticalY;
     err=Math.hypot(ex,ey);
     const gain=Number(kp.value);
-    cam.x+=ex*gain;
-    cam.y+=ey*gain;
+    if(!cameraActive){
+      cam.x+=ex*gain;
+      cam.y+=ey*gain;
+      opticalX=cam.x;
+      opticalY=cam.y;
+    }
     pan+=ex/W*60*gain;
     tilt-=ey/H*38*gain;
     locked=err<Number(lockRadius.value);
@@ -2391,12 +2557,13 @@ function loop(now){
     if(locked && acquiredAt===null) acquiredAt=(performance.now()-startAt)/1000;
   }
 
-  if(hasLiveTarget){
+  if(hasLiveTarget && hasLaserSpot){
     ctx.strokeStyle='#72e4ff';
     ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(cam.x,cam.y);ctx.lineTo(mx,my);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(opticalX,opticalY);ctx.lineTo(mx,my);ctx.stroke();
   }
-  drawCross(cam.x,cam.y,locked);
+  drawCross(opticalX,opticalY,locked);
+  if(hasLaserSpot) drawLaserDetection(latestLaserSpot);
 
   if(!cameraActive && !hidden){
     ctx.shadowBlur=24;ctx.shadowColor='#ffd166';ctx.fillStyle='#ffd166';
@@ -2406,7 +2573,7 @@ function loop(now){
 
   ctx.fillStyle='#72e4ff';
   ctx.font='700 14px ui-monospace,monospace';
-  ctx.fillText(cameraActive?'LIVE CAMERA • YOLOV8':'VIRTUAL CAMERA FOV',20,24);
+  ctx.fillText(cameraActive?'LIVE CAMERA • YOLOV8 + LASER VISION':'VIRTUAL CAMERA FOV',20,24);
 
   const ang=err/W*60;
   el('err').textContent=err.toFixed(0)+' px';
@@ -2418,9 +2585,13 @@ function loop(now){
     : (1/Math.max(dt,.001)).toFixed(0);
   el('lock').textContent=(frames?100*lockedFrames/frames:0).toFixed(1)+'%';
   el('acq').textContent=acquiredAt===null?'—':acquiredAt.toFixed(2)+' s';
-  el('lat').textContent=yoloLatency?yoloLatency.toFixed(0)+' ms':'—';
+  el('lat').textContent=yoloLatency?(yoloLatency+laserLatency).toFixed(0)+' ms':'—';
   el('targetClass').textContent=hasLiveTarget?selectedDetection.label.toUpperCase():'—';
   el('confidence').textContent=hasLiveTarget?(selectedDetection.score*100).toFixed(1)+'%':'—';
+  el('laserSpot').textContent=hasLaserSpot
+    ? Math.round(latestLaserSpot.x)+', '+Math.round(latestLaserSpot.y)+' px':'—';
+  el('laserConfidence').textContent=hasLaserSpot
+    ? (latestLaserSpot.confidence*100).toFixed(1)+'%':'—';
 
   let status='IDLE',color='#8aa3bd',msg='Press Start Tracking to enable the camera';
   if(running){
@@ -2430,10 +2601,12 @@ function loop(now){
       status='AI LOADING';color='#ffb020';msg='Camera live — loading YOLO model';
     }else if(cameraActive && !hasLiveTarget){
       status='SEARCHING';color='#ffb020';msg='YOLO is searching for a target';
+    }else if(cameraActive && !hasLaserSpot){
+      status='LASER LOST';color='#ff5d73';msg='Target found — searching for green laser spot';
     }else if(locked){
-      status='LOCKED';color='#44d17a';msg='Coarse alignment achieved';
+      status='TARGET LOCKED';color='#44d17a';msg='Laser spot aligned with selected target';
     }else{
-      status='TRACKING';color='#ffb020';msg='Controller reducing pointing error';
+      status='ALIGNING';color='#ffb020';msg='Controller reducing target-to-laser error';
     }
   }
 
@@ -2461,6 +2634,21 @@ el('startBtn').onclick=async()=>{
 };
 
 el('disturbBtn').onclick=()=>{disturbance=45;};
+
+el('testVideoBtn').onclick=()=>el('testVideoInput').click();
+el('testVideoInput').onchange=async event=>{
+  const file=event.target.files?.[0];
+  if(!file) return;
+  try{
+    await startRecordedVideo(file);
+  }catch(error){
+    console.error(error);
+    setYoloState('Video could not open','error');
+    el('lockText').textContent='Choose another browser-compatible video';
+  }finally{
+    event.target.value='';
+  }
+};
 
 el('hideBtn').onclick=()=>{
   hidden=!hidden;

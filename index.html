@@ -1065,6 +1065,15 @@ body.notice-open{overflow:hidden}
 @media(max-width:520px){.desktop-notice-panel{padding:30px 24px 24px;border-radius:20px}.desktop-notice-title{font-size:32px}}
 @media(prefers-reduced-motion:reduce){.desktop-notice,.desktop-notice-panel{animation:none}}
 
+
+/* Arduino Web Serial hardware link */
+.hardware-link{margin:12px 0 2px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #28445f;border-radius:12px;background:rgba(6,18,32,.82)}
+.hardware-link-label{color:#8aa3bd;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase}
+.hardware-state{margin-left:auto;color:#8aa3bd;font:500 11px 'IBM Plex Mono',monospace}
+.hardware-state.ready{color:#44d17a}.hardware-state.error{color:#ff5d73}
+.hardware-link button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:680px){.hardware-state{width:100%;margin-left:0}}
+
 </style>
 </head>
 
@@ -1495,6 +1504,15 @@ body.notice-open{overflow:hidden}
       <div class="ai-strip">
         <span><b>YOLOv8n + Laser Vision</b> • target and green-spot detection</span>
         <span id="yoloState">Camera off</span>
+      </div>
+
+
+      <div class="hardware-link" aria-label="Arduino hardware controls">
+        <span class="hardware-link-label">Arduino hardware link</span>
+        <button id="connectArduinoBtn" type="button">🔌 Connect Arduino</button>
+        <button id="hardwareTrackBtn" type="button" disabled>🎯 Enable Servo Tracking</button>
+        <button id="centerServoBtn" type="button" disabled>Center 90°</button>
+        <span class="hardware-state" id="arduinoState">Disconnected</span>
       </div>
 
       <div class="controls">
@@ -2903,6 +2921,102 @@ el('idealMatch').onclick=()=>{
 });
 
 runFourierAnalysis();
+
+
+/* =========================================================
+   ARDUINO WEB SERIAL LINK
+   ========================================================= */
+let heliosSerialPort=null;
+let heliosSerialWriter=null;
+let heliosHardwareTracking=false;
+let heliosSerialBusy=false;
+
+const connectArduinoBtn=el('connectArduinoBtn');
+const hardwareTrackBtn=el('hardwareTrackBtn');
+const centerServoBtn=el('centerServoBtn');
+const arduinoState=el('arduinoState');
+
+function setArduinoState(message,state=''){
+  arduinoState.textContent=message;
+  arduinoState.className='hardware-state'+(state?' '+state:'');
+}
+
+async function sendServoAngle(angle){
+  if(!heliosSerialWriter || heliosSerialBusy) return;
+  heliosSerialBusy=true;
+  const safeAngle=Math.round(Math.max(0,Math.min(180,angle)));
+  try{
+    await heliosSerialWriter.write(new TextEncoder().encode('P:'+safeAngle+'\\n'));
+  }catch(error){
+    console.error(error);
+    setArduinoState('Connection lost','error');
+    heliosHardwareTracking=false;
+    hardwareTrackBtn.textContent='🎯 Enable Servo Tracking';
+  }finally{
+    heliosSerialBusy=false;
+  }
+}
+
+async function disconnectArduino(){
+  heliosHardwareTracking=false;
+  if(heliosSerialWriter){heliosSerialWriter.releaseLock();heliosSerialWriter=null}
+  if(heliosSerialPort){await heliosSerialPort.close();heliosSerialPort=null}
+  connectArduinoBtn.textContent='🔌 Connect Arduino';
+  hardwareTrackBtn.disabled=true;
+  centerServoBtn.disabled=true;
+  hardwareTrackBtn.textContent='🎯 Enable Servo Tracking';
+  setArduinoState('Disconnected');
+}
+
+connectArduinoBtn.onclick=async()=>{
+  if(heliosSerialPort){
+    try{await disconnectArduino()}catch(error){console.error(error)}
+    return;
+  }
+  if(!('serial' in navigator)){
+    setArduinoState('Use Chrome/Edge on laptop','error');
+    return;
+  }
+  try{
+    heliosSerialPort=await navigator.serial.requestPort();
+    await heliosSerialPort.open({baudRate:115200});
+    heliosSerialWriter=heliosSerialPort.writable.getWriter();
+    connectArduinoBtn.textContent='Disconnect Arduino';
+    hardwareTrackBtn.disabled=false;
+    centerServoBtn.disabled=false;
+    setArduinoState('Connected • 115200 baud','ready');
+    await sendServoAngle(90);
+  }catch(error){
+    console.error(error);
+    setArduinoState('Connection cancelled','error');
+    heliosSerialPort=null;
+  }
+};
+
+hardwareTrackBtn.onclick=()=>{
+  heliosHardwareTracking=!heliosHardwareTracking;
+  hardwareTrackBtn.textContent=heliosHardwareTracking?'⏸ Stop Servo Tracking':'🎯 Enable Servo Tracking';
+  setArduinoState(heliosHardwareTracking?'Live pan tracking':'Connected • tracking paused','ready');
+};
+
+centerServoBtn.onclick=()=>sendServoAngle(90);
+
+setInterval(()=>{
+  if(heliosHardwareTracking && heliosSerialWriter) sendServoAngle(90+pan);
+},150);
+
+if('serial' in navigator){
+  navigator.serial.addEventListener('disconnect',()=>{
+    heliosSerialPort=null;
+    heliosSerialWriter=null;
+    heliosHardwareTracking=false;
+    connectArduinoBtn.textContent='🔌 Connect Arduino';
+    hardwareTrackBtn.disabled=true;
+    centerServoBtn.disabled=true;
+    hardwareTrackBtn.textContent='🎯 Enable Servo Tracking';
+    setArduinoState('Arduino unplugged','error');
+  });
+}
 
 </script>
 

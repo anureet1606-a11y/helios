@@ -736,6 +736,24 @@ main{
 .ai-strip .ready{color:#44d17a}
 .ai-strip .error{color:#ff5d73}
 
+.target-picker{padding:15px;margin-bottom:18px}
+.target-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.target-picker-title{display:flex;align-items:center;gap:9px}
+.target-picker-title .scan-dot{width:8px;height:8px;border-radius:50%;background:#72e4ff;box-shadow:0 0 10px rgba(114,228,255,.8)}
+.target-picker-title small{display:block;margin-top:3px;color:var(--muted);font-size:10px;font-weight:400}
+#unlockTargetBtn{padding:7px 10px;font-size:10px}
+.detected-object-list{display:grid;gap:8px;max-height:245px;overflow:auto}
+.object-target{width:100%;padding:10px 11px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;background:#081424;border-color:#1d3955}
+.object-target:hover{border-color:#72e4ff}
+.object-target.active{color:#fff;border-color:#ff5aa5;background:rgba(255,90,165,.12);box-shadow:inset 3px 0 #ff5aa5}
+.object-index{width:24px;height:24px;display:grid;place-items:center;border-radius:7px;color:#72e4ff;background:rgba(114,228,255,.09);font:700 10px 'IBM Plex Mono',monospace}
+.object-target.active .object-index{color:#ff91c4;background:rgba(255,90,165,.12)}
+.object-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.object-confidence{color:#8aa3bd;font:500 10px 'IBM Plex Mono',monospace}
+.object-list-empty{padding:16px 12px;border:1px dashed #24415f;border-radius:10px;color:#6f8aa5;font-size:11px;line-height:1.5;text-align:center}
+.target-lock-note{margin-top:10px;color:#718aa3;font-size:10px;line-height:1.45}
+.target-lock-note strong{color:#ff91c4}
+
 canvas{
   width:100%;
   aspect-ratio:16/10;
@@ -1594,6 +1612,23 @@ body.notice-open{overflow:hidden}
 
   <aside>
 
+    <div class="card target-picker" aria-label="Detected object target selector">
+      <div class="target-picker-head">
+        <div class="target-picker-title">
+          <span class="scan-dot"></span>
+          <div>
+            <b>Detected objects</b>
+            <small>Select one object to track</small>
+          </div>
+        </div>
+        <button id="unlockTargetBtn" type="button" disabled>Unlock</button>
+      </div>
+      <div class="detected-object-list" id="detectedObjectList" aria-live="polite">
+        <div class="object-list-empty">Start the camera to scan for objects.</div>
+      </div>
+      <div class="target-lock-note" id="targetLockNote">No target selected — tracking output is paused.</div>
+    </div>
+
     <div class="card metrics">
 
       <div class="status">
@@ -2089,6 +2124,7 @@ yoloLoading=null,
 detecting=false,
 latestDetections=[],
 selectedDetection=null,
+lockedTarget=null,
 lastDetectionAt=0,
 yoloLatency=0,
 latestLaserSpot=null,
@@ -2209,6 +2245,8 @@ function stopCamera(){
   detecting=false;
   latestDetections=[];
   selectedDetection=null;
+  lockedTarget=null;
+  renderDetectedObjects();
   latestLaserSpot=null;
   lastLaserAt=0;
 }
@@ -2310,14 +2348,92 @@ function runLaserFrame(now=performance.now()){
   laserLatency=performance.now()-started;
 }
 
-function chooseTarget(detections){
-  if(!detections.length) return null;
-  const priority=['cell phone','laptop','person'];
-  for(const label of priority){
-    const match=detections.filter(item=>item.label===label).sort((a,b)=>b.score-a.score)[0];
-    if(match) return match;
+function boxIou(a,b){
+  if(!a || !b) return 0;
+  const left=Math.max(a.x,b.x),top=Math.max(a.y,b.y);
+  const right=Math.min(a.x+a.width,b.x+b.width),bottom=Math.min(a.y+a.height,b.y+b.height);
+  const intersection=Math.max(0,right-left)*Math.max(0,bottom-top);
+  const union=a.width*a.height+b.width*b.height-intersection;
+  return union>0?intersection/union:0;
+}
+
+function matchLockedTarget(detections){
+  if(!lockedTarget) return null;
+  const candidates=detections.filter(item=>item.classId===lockedTarget.classId);
+  if(!candidates.length) return null;
+  const previous=lockedTarget.lastBox;
+  if(!previous) return [...candidates].sort((a,b)=>b.score-a.score)[0];
+
+  const diagonal=Math.hypot(W,H);
+  const ranked=candidates.map(item=>{
+    const distance=Math.hypot(item.cx-previous.cx,item.cy-previous.cy)/diagonal;
+    const iou=boxIou(item,previous);
+    const proximity=Math.max(0,1-distance*3);
+    return {item,distance,iou,rank:iou*.72+proximity*.23+item.score*.05};
+  }).sort((a,b)=>b.rank-a.rank);
+
+  const best=ranked[0];
+  const recentlySeen=performance.now()-lockedTarget.lastSeen<1600;
+  if(recentlySeen && best.iou<.015 && best.distance>.22) return null;
+  return best.item;
+}
+
+function lockDetection(detection){
+  if(!detection) return;
+  lockedTarget={classId:detection.classId,label:detection.label,lastBox:{...detection},lastSeen:performance.now()};
+  selectedDetection=detection;
+  acquiredAt=null;
+  frames=0;
+  lockedFrames=0;
+  renderDetectedObjects();
+}
+
+function renderDetectedObjects(){
+  const list=el('detectedObjectList'),unlock=el('unlockTargetBtn'),note=el('targetLockNote');
+  if(!list || !unlock || !note) return;
+  list.replaceChildren();
+  unlock.disabled=!lockedTarget;
+
+  if(!cameraActive){
+    const empty=document.createElement('div');
+    empty.className='object-list-empty';
+    empty.textContent='Start the camera to scan for objects.';
+    list.appendChild(empty);
+  }else if(!latestDetections.length){
+    const empty=document.createElement('div');
+    empty.className='object-list-empty';
+    empty.textContent='Scanning… no recognised objects in this frame.';
+    list.appendChild(empty);
+  }else{
+    const counts={},seen={};
+    latestDetections.forEach(item=>{counts[item.label]=(counts[item.label]||0)+1});
+    latestDetections.forEach((detection,index)=>{
+      seen[detection.label]=(seen[detection.label]||0)+1;
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='object-target'+(detection===selectedDetection?' active':'');
+      button.dataset.detectionIndex=String(index);
+      button.setAttribute('aria-pressed',detection===selectedDetection?'true':'false');
+
+      const badge=document.createElement('span');
+      badge.className='object-index';
+      badge.textContent=String(index+1).padStart(2,'0');
+      const name=document.createElement('span');
+      name.className='object-name';
+      name.textContent=detection.label+(counts[detection.label]>1?' #'+seen[detection.label]:'');
+      const confidence=document.createElement('span');
+      confidence.className='object-confidence';
+      confidence.textContent=(detection.score*100).toFixed(0)+'%';
+      button.append(badge,name,confidence);
+      list.appendChild(button);
+    });
   }
-  return [...detections].sort((a,b)=>b.score-a.score)[0];
+
+  if(lockedTarget){
+    const state=selectedDetection?'LOCKED':'REACQUIRING';
+    note.innerHTML='<strong>'+state+'</strong> • '+lockedTarget.label.toUpperCase()+
+      (selectedDetection?' — only this object drives tracking.':' — waiting for the same object to return.');
+  }else note.textContent='No target selected — tracking output is paused.';
 }
 
 async function runYoloFrame(){
@@ -2378,8 +2494,13 @@ async function runYoloFrame(){
     }
 
     latestDetections=detections;
-    selectedDetection=chooseTarget(detections);
-    lastDetectionAt=performance.now();
+    selectedDetection=matchLockedTarget(detections);
+    if(selectedDetection){
+      lockedTarget.lastBox={...selectedDetection};
+      lockedTarget.lastSeen=performance.now();
+      lastDetectionAt=performance.now();
+    }
+    renderDetectedObjects();
     yoloLatency=performance.now()-started;
     setYoloState('YOLO live','ready');
   }finally{
@@ -2617,8 +2738,10 @@ function loop(now){
       status='TARGET LOST';color='#ff5d73';msg='Detection overlay hidden — reacquisition required';
     }else if(cameraActive && !yoloModel){
       status='AI LOADING';color='#ffb020';msg='Camera live — loading YOLO model';
+    }else if(cameraActive && !lockedTarget){
+      status='SELECT TARGET';color='#72e4ff';msg='Choose one detected object from the side panel';
     }else if(cameraActive && !hasLiveTarget){
-      status='SEARCHING';color='#ffb020';msg='YOLO is searching for a target';
+      status='REACQUIRING';color='#ffb020';msg='Searching only for the selected '+lockedTarget.label;
     }else if(cameraActive && !hasLaserSpot){
       status='LASER LOST';color='#ff5d73';msg='Target found — searching for green laser spot';
     }else if(locked){
@@ -2671,6 +2794,21 @@ el('testVideoInput').onchange=async event=>{
 el('hideBtn').onclick=()=>{
   hidden=!hidden;
   el('hideBtn').textContent=hidden?'👁 Show Beacon':'👻 Hide Beacon';
+};
+
+el('detectedObjectList').onclick=event=>{
+  const button=event.target.closest('.object-target');
+  if(!button) return;
+  lockDetection(latestDetections[Number(button.dataset.detectionIndex)]);
+};
+
+el('unlockTargetBtn').onclick=()=>{
+  lockedTarget=null;
+  selectedDetection=null;
+  acquiredAt=null;
+  frames=0;
+  lockedFrames=0;
+  renderDetectedObjects();
 };
 
 el('resetBtn').onclick=reset;
